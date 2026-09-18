@@ -6,11 +6,12 @@ import AppDetailsScreen from '../screens/StackScreens/AppDetailsScreen';
 const Stack = createStackNavigator();
 
 export default function StackComponent() {
+    // Stack-navigation samler detaljevisningen og opgavens undersider.
     return (
-        <Stack.Navigator initialRouteName="Details Screen">
-            <Stack.Screen name="Details Screen" component={DetailsScreen} />
-            <Stack.Screen name="User Profile" component={UserProfileScreen} />
-            <Stack.Screen name="App Details" component={AppDetailsScreen} />
+        <Stack.Navigator initialRouteName="Opgavedetaljer">
+            <Stack.Screen name="Opgavedetaljer" component={DetailsScreen} />
+            <Stack.Screen name="Naboernes bidrag" component={UserProfileScreen} />
+            <Stack.Screen name="Virksomheders bud" component={AppDetailsScreen} />
         </Stack.Navigator>
     );
 }

@@ -1,32 +1,47 @@
 import { StatusBar } from 'expo-status-bar';
-import { FlatList, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Pressable, Text, View } from 'react-native';
+import { opportunities } from '../data/opportunities';
+import styles from '../styles/HomeScreenStyles';
 
-const carBrands = [
-    'Audi',
-    'BMW',
-    'Tesla',
-    'Alfa Romeo',
-    'Ford',
-    'Kia',
-    'Rover',
-    'Saab',
-    'Seat',
-    'Skoda',
-    'Smart',
-    'SsangYong',
-    'Subaru',
-    'Suzuki',
-];
+export default function HomeScreen({ navigation }) {
+    // Demoens bruger bor på denne vej og er derfor allerede tilmeldt opgaven.
+    const userStreet = 'Solvænget';
 
-export default function HomeScreen() {
     return (
         <View style={styles.container}>
-            <Text style={styles.title}>Mine bilmærker</Text>
+            <Text style={styles.eyebrow}>SAMMEN I NÆROMRÅDET</Text>
+            <Text style={styles.title}>Fælles opgaver</Text>
+            <Text style={styles.intro}>
+                Saml naboerne, og få virksomheder til at byde på opgaven.
+            </Text>
             <View style={styles.listContainer}>
                 <FlatList
-                    data={carBrands}
+                    // Listen viser de fælles opgaver i nærområdet.
+                    data={opportunities}
+                    keyExtractor={(item) => item.id}
                     renderItem={({ item }) => (
-                        <Text style={styles.item}>{item}</Text>
+                        <Pressable
+                            style={[styles.item, item.location === userStreet && styles.joinedItem]}
+                            // Tryk på en opgave for at se flere detaljer.
+                            onPress={() =>
+                                navigation.navigate('OpgaveStack', {
+                                    screen: 'Opgavedetaljer',
+                                    params: { opportunity: item },
+                                })
+                            }
+                        >
+                            <View style={styles.itemHeader}>
+                                <Text style={styles.itemTitle}>{item.title}</Text>
+                                {item.location === userStreet && (
+                                    <Text style={styles.joinedLabel}>DU ER TILMELDT</Text>
+                                )}
+                            </View>
+                            <Text style={styles.itemMeta}>{item.location}</Text>
+                            <View style={styles.itemFooter}>
+                                <Text style={styles.status}>{item.status}</Text>
+                                <Text style={styles.deadline}>{item.deadline}</Text>
+                            </View>
+                        </Pressable>
                     )}
                 />
             </View>
@@ -34,24 +49,3 @@ export default function HomeScreen() {
         </View>
     );
 }
-
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#f4f6f8',
-        alignItems: 'center',
-    },
-    title: {
-        fontSize: 22,
-        fontWeight: 'bold',
-        padding: 24,
-    },
-    listContainer: {
-        height: 350,
-        width: '80%',
-        backgroundColor: '#ffffff',
-        borderRadius: 10,
-        padding: 10,
-    },
-    item: { fontSize: 16, padding: 10, textAlign: 'center' },
-});
