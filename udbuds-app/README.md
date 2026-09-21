@@ -43,7 +43,7 @@ Start Expo:
 npx expo start
 ```
 
-Scan QR-koden med Expo Go på din Android-telefon.
+Scan QR-koden med Expo Go på din telefon.
 
 ## Projektstruktur
 
