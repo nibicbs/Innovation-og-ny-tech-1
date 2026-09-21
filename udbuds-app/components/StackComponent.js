@@ -10,7 +10,7 @@ export default function StackComponent() {
     return (
         <Stack.Navigator initialRouteName="Opgavedetaljer">
             <Stack.Screen name="Opgavedetaljer" component={DetailsScreen} />
-            <Stack.Screen name="Naboernes bidrag" component={UserProfileScreen} />
+            <Stack.Screen name="Tilmeldte naboer" component={UserProfileScreen} />
             <Stack.Screen name="Virksomheders bud" component={AppDetailsScreen} />
         </Stack.Navigator>
     );

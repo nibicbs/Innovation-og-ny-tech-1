@@ -15,7 +15,7 @@ export default function NeighborhoodScreen() {
                 <Text style={styles.summaryLabel}>naboer i dit område</Text>
             </View>
             <View style={styles.summary}>
-                <Text style={styles.summaryNumber}>4</Text>
+                <Text style={styles.summaryNumber}>3</Text>
                 <Text style={styles.summaryLabel}>aktive fælles opgaver</Text>
             </View>
         </View>

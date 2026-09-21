@@ -2,23 +2,24 @@ import { FlatList, Text, View } from 'react-native';
 import styles from '../../styles/UserProfileScreenStyles';
 
 export default function UserProfileScreen({ route }) {
-    // Den valgte opgaves adresser sendes med gennem navigationen.
+    // Deltagerne vises anonymt, så listen ikke indeholder personlige adresser.
     const opportunity = route.params?.opportunity;
-    const participatingHouses = opportunity?.participatingHouses || [];
+    const participatingNeighbors = opportunity?.participatingNeighbors || [];
 
     return (
         <View style={styles.container}>
-            <Text style={styles.eyebrow}>NABOERNES BIDRAG</Text>
-            <Text style={styles.title}>Tilmeldte huse</Text>
+            <Text style={styles.eyebrow}>TILMELDTE NABOER</Text>
+            <Text style={styles.title}>Tilmeldte naboer</Text>
             <Text style={styles.text}>
-                Disse adresser er med på opgaven:
+                Deltagerne vises anonymt af hensyn til privatliv.
             </Text>
             <FlatList
-                data={participatingHouses}
-                keyExtractor={(address) => address}
-                renderItem={({ item: address }) => (
+                data={participatingNeighbors}
+                keyExtractor={(neighbor) => neighbor}
+                renderItem={({ item: neighbor }) => (
                     <View style={styles.addressItem}>
-                        <Text style={styles.address}>{address}</Text>
+                        <Text style={styles.address}>{neighbor}</Text>
+                        <Text style={styles.status}>Tilmeldt opgaven</Text>
                     </View>
                 )}
             />

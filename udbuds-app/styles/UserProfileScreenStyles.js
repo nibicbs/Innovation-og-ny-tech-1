@@ -36,4 +36,9 @@ export default StyleSheet.create({
         fontSize: 16,
         fontWeight: '600',
     },
+    status: {
+        color: '#2E7D73',
+        fontSize: 13,
+        marginTop: 4,
+    },
 });

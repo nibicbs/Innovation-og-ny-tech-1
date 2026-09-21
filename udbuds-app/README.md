@@ -11,7 +11,7 @@ Et eksempel kan være vinduespudsning for 10 huse på samme vej. Ved at samle op
 - Navigation mellem `Opgaver` og `Min vej`
 - Enkel side med indstillinger for vej, radius og notifikationer
 - Opgavedetaljer åbnes ved at trykke på en opgave
-- Navigation til naboernes bidrag
+- Navigation til tilmeldte naboer
 - Navigation til virksomheders bud
 - Enkel områdeoversigt
 - Styling i separate style-filer
@@ -57,4 +57,4 @@ Scan QR-koden med Expo Go på din Android-telefon.
 
 Indsæt linket til demovideoen her:
 
-[Se demovideoen](INDSÆT-VIDEOLINK-HER)
+[Se demovideoen](https://www.youtube.com/shorts/5IqHOa4Hpx8?is=q0vmvWKps-U0MXnE)

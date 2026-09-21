@@ -6,7 +6,23 @@ export const opportunities = [
         location: 'Solvænget',
         deadline: 'Frist om 5 dage',
         status: 'Åben for bud',
-        participatingHouses: ['Solvænget 4', 'Solvænget 8', 'Solvænget 12', 'Solvænget 18'],
+        expectedCost: 2400,
+        isUserParticipating: true,
+        offers: [
+            {
+                company: 'LokalRude ApS',
+                originalPrice: 2800,
+                discountedPrice: 2400,
+                description: 'Indeholder pudsning af ekstra høje vinduer samt indvendige og udvendige vinduer.',
+            },
+            {
+                company: 'KlarRude Service',
+                originalPrice: 3100,
+                discountedPrice: 2600,
+                description: 'Indeholder indvendig og udvendig pudsning af alle standardvinduer.',
+            },
+        ],
+        participatingNeighbors: ['Nabo 1', 'Nabo 2', 'Nabo 3', 'Nabo 4'],
     },
     {
         id: '2',
@@ -14,7 +30,9 @@ export const opportunities = [
         location: 'Birkevej',
         deadline: 'Frist om 9 dage',
         status: 'Åben for bud',
-        participatingHouses: ['Birkevej 3', 'Birkevej 11', 'Birkevej 20'],
+        expectedCost: 6800,
+        isUserParticipating: false,
+        participatingNeighbors: ['Nabo 1', 'Nabo 2', 'Nabo 3'],
     },
     {
         id: '3',
@@ -22,6 +40,8 @@ export const opportunities = [
         location: 'Engtoften',
         deadline: 'Frist om 12 dage',
         status: 'Afventer flere naboer',
-        participatingHouses: ['Engtoften 2', 'Engtoften 7', 'Engtoften 15', 'Engtoften 21', 'Engtoften 26'],
+        expectedCost: 1800,
+        isUserParticipating: false,
+        participatingNeighbors: ['Nabo 1', 'Nabo 2', 'Nabo 3', 'Nabo 4', 'Nabo 5'],
     },
 ];
