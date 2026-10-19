@@ -69,6 +69,8 @@ export default StyleSheet.create({
         marginTop: 6,
     },
     itemFooter: {
+        flexWrap: 'wrap',
+        gap: 6,
         alignItems: 'center',
         flexDirection: 'row',
         justifyContent: 'space-between',

@@ -1,23 +1,23 @@
-import { Text, View } from 'react-native';
+import { ScrollView, Text, View } from 'react-native';
+import { useOpportunities } from '../context/OpportunitiesContext';
+import { canJoinOpportunity } from '../utils/opportunities';
+import DatabaseState, { ConnectionNotice } from '../components/DatabaseState';
 import styles from '../styles/NeighborhoodScreenStyles';
 
 export default function NeighborhoodScreen() {
-    // Område-fanen samler enkle nøgletal for brugerens vej.
+    const data = useOpportunities();
+    if (data.loading || data.error) return <DatabaseState {...data} />;
+    const realTasks = data.opportunities.filter((task) => !task.isDemo);
+    const activeTasks = realTasks.filter((task) => canJoinOpportunity(task));
+    const participants = new Set(realTasks.flatMap((task) => task.participants.filter((p) => !p.isDemo).map((p) => p.id)));
     return (
-        <View style={styles.container}>
-            <Text style={styles.eyebrow}>MIT OMRÅDE</Text>
-            <Text style={styles.title}>Solvænget</Text>
-            <Text style={styles.text}>
-                Her kan du se, hvordan din vej bruger SammenBud.
-            </Text>
-            <View style={styles.summary}>
-                <Text style={styles.summaryNumber}>10</Text>
-                <Text style={styles.summaryLabel}>naboer i dit område</Text>
-            </View>
-            <View style={styles.summary}>
-                <Text style={styles.summaryNumber}>3</Text>
-                <Text style={styles.summaryLabel}>aktive fælles opgaver</Text>
-            </View>
-        </View>
+        <ScrollView style={styles.container}>
+            <Text style={styles.eyebrow}>FÆLLESSKABET</Text>
+            <Text style={styles.title}>Fælles overblik</Text>
+            <Text style={styles.text}>Aktivitet på tværs af appens områder. Eksempelopgaver er ikke medregnet.</Text>
+            <ConnectionNotice connected={data.connected} />
+            <View style={styles.summary}><Text style={styles.summaryNumber}>{participants.size}</Text><Text style={styles.summaryLabel}>brugere tilmeldt fælles opgaver</Text></View>
+            <View style={styles.summary}><Text style={styles.summaryNumber}>{activeTasks.length}</Text><Text style={styles.summaryLabel}>opgaver med åben tilmelding</Text></View>
+        </ScrollView>
     );
 }

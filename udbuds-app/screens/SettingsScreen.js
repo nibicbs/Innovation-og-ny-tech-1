@@ -1,19 +1,44 @@
-import { Switch, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, Switch, Text, View } from 'react-native';
 import { useState } from 'react';
+import { signOut } from 'firebase/auth';
+import { auth } from '../database/firebase';
+import { useAuth } from '../context/AuthContext';
+import { getAuthErrorMessage } from '../utils/authErrors';
 import styles from '../styles/SettingsScreenStyles';
 
 export default function SettingsScreen() {
-    // Notifikationer er den eneste indstilling, der kan ændres i demoen.
+    const { user } = useAuth();
     const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+    const [loggingOut, setLoggingOut] = useState(false);
+    const [logoutError, setLogoutError] = useState('');
+
+    const logout = async () => {
+        if (loggingOut) return;
+        setLoggingOut(true);
+        setLogoutError('');
+        try {
+            await signOut(auth);
+        } catch (error) {
+            setLogoutError(getAuthErrorMessage(error));
+        } finally {
+            setLoggingOut(false);
+        }
+    };
 
     return (
-        <View style={styles.container}>
+        <ScrollView style={styles.container} contentContainerStyle={styles.content}>
             <Text style={styles.eyebrow}>INDSTILLINGER</Text>
             <Text style={styles.title}>Din SammenBud</Text>
             <Text style={styles.text}>
                 Vælg de oplysninger, der skal bruges til at finde relevante opgaver.
             </Text>
             <View style={styles.settingsList}>
+                <View style={styles.settingRow}>
+                    <View style={styles.account}>
+                        <Text style={styles.settingLabel}>Logget ind som</Text>
+                        <Text style={styles.settingValue}>{user?.email}</Text>
+                    </View>
+                </View>
                 <View style={styles.settingRow}>
                     <View>
                         <Text style={styles.settingLabel}>Din vej</Text>
@@ -39,6 +64,14 @@ export default function SettingsScreen() {
                     />
                 </View>
             </View>
-        </View>
+            {!!logoutError && <Text style={styles.error} accessibilityRole="alert">{logoutError}</Text>}
+            <Pressable
+                style={[styles.logoutButton, loggingOut && styles.disabled]}
+                onPress={logout} disabled={loggingOut} accessibilityRole="button"
+                accessibilityState={{ disabled: loggingOut, busy: loggingOut }}
+            >
+                {loggingOut ? <ActivityIndicator color="#17324D" /> : <Text style={styles.logoutText}>Log ud</Text>}
+            </Pressable>
+        </ScrollView>
     );
 }

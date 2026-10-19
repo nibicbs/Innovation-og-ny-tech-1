@@ -4,9 +4,13 @@ export default StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#F6F2EA',
-        padding: 24,
-        paddingTop: 36,
     },
+    content: { padding: 24, paddingTop: 36, paddingBottom: 48 },
+    account: { flex: 1 },
+    logoutButton: { borderWidth: 1, borderColor: '#17324D', borderRadius: 10, padding: 16, marginTop: 24, alignItems: 'center', minHeight: 52 },
+    logoutText: { color: '#17324D', fontSize: 16, fontWeight: '700' },
+    disabled: { opacity: 0.5 },
+    error: { color: '#A52A2A', fontSize: 14, lineHeight: 21, marginTop: 16 },
     eyebrow: {
         color: '#2E7D73',
         fontSize: 12,

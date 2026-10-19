@@ -1,0 +1,37 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "opportunities": {
+      ".read": "auth != null",
+      ".indexOn": ["ownerId", "createdAt"],
+      "$id": {
+        ".write": "auth != null && newData.exists() && ((!data.exists() && newData.child('ownerId').val() === auth.uid) || (data.exists() && data.child('ownerId').val() === auth.uid))",
+        ".validate": "newData.hasChildren(['title', 'location', 'description', 'deadlineAt', 'status', 'ownerId', 'createdAt', 'updatedAt', 'isDemo']) && newData.child('updatedAt').val() === now && (newData.child('deadlineAt').val() > now || newData.child('status').val() === 'Lukket')",
+        "title": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 120 && newData.val().matches(/.*[^ \\t\\r\\n].*/)" },
+        "location": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 120 && newData.val().matches(/.*[^ \\t\\r\\n].*/)" },
+        "description": { ".validate": "newData.isString() && newData.val().length <= 3000" },
+        "deadlineAt": { ".validate": "newData.isNumber() && newData.val() > 0 && (newData.val() > now || newData.parent().child('status').val() === 'Lukket')" },
+        "status": { ".validate": "newData.val() === 'Åben for bud' || newData.val() === 'Afventer flere naboer' || newData.val() === 'Lukket'" },
+        "ownerId": { ".validate": "newData.isString() && ((!data.exists() && newData.val() === auth.uid) || newData.val() === data.val())" },
+        "createdAt": { ".validate": "newData.isNumber() && ((!data.exists() && newData.val() === now) || newData.val() === data.val())" },
+        "updatedAt": { ".validate": "newData.isNumber() && newData.val() === now" },
+        "isDemo": { ".validate": "newData.val() === false" },
+        "$other": { ".validate": false }
+      }
+    },
+    "participants": {
+      ".read": "auth != null",
+      "$id": {
+        "$uid": {
+          ".write": "auth != null && auth.uid === $uid && (!newData.exists() || ((newData.parent().parent().parent().child('opportunities').child($id).child('status').val() === 'Åben for bud' || newData.parent().parent().parent().child('opportunities').child($id).child('status').val() === 'Afventer flere naboer') && newData.parent().parent().parent().child('opportunities').child($id).child('deadlineAt').val() > now))",
+          ".validate": "newData.hasChildren(['joinedAt'])",
+          "joinedAt": { ".validate": "newData.isNumber() && newData.val() === now" },
+          "$other": { ".validate": false }
+        }
+      }
+    },
+    "offers": { ".read": "auth != null", ".write": false },
+    "demoParticipants": { ".read": "auth != null", ".write": false }
+  }
+}

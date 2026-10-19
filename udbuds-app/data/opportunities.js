@@ -1,4 +1,5 @@
-// Eksempeldata for opgaver, som naboer kan gå sammen om.
+// Historiske eksempeldata til engangsimporten i scripts/prepare-demo-import.mjs.
+// Appens screens læser nu udelukkende fra Firebase.
 export const opportunities = [
     {
         id: '1',

@@ -1,6 +1,7 @@
 import { StyleSheet } from 'react-native';
 
 export default StyleSheet.create({
+    disabled: { opacity: 0.5 },
     button: {
         alignItems: 'center',
         justifyContent: 'center',

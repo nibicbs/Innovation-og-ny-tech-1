@@ -1,8 +1,13 @@
 import { ScrollView, Text, View } from 'react-native';
 import styles from '../../styles/AppDetailsScreenStyles';
+import { useOpportunity } from '../../context/OpportunitiesContext';
+import DatabaseState, { ConnectionNotice } from '../../components/DatabaseState';
+import dbStyles from '../../styles/DatabaseStyles';
 
 export default function AppDetailsScreen({ route }) {
-    const offers = route.params?.opportunity?.offers || [];
+    const data = useOpportunity(route.params?.opportunityId);
+    if (data.loading || data.error || !data.opportunity) return <DatabaseState {...data} missing={!data.opportunity} />;
+    const offers = data.opportunity.offers;
     const sortedOffers = [...offers].sort(
         (firstOffer, secondOffer) => firstOffer.discountedPrice - secondOffer.discountedPrice,
     );
@@ -13,6 +18,8 @@ export default function AppDetailsScreen({ route }) {
             contentContainerStyle={styles.contentContainer}
         >
             <Text style={styles.eyebrow}>VIRKSOMHEDERS BUD</Text>
+            <ConnectionNotice connected={data.connected} />
+            {data.opportunity.isDemo && <Text style={dbStyles.demo}>Tilbuddene er eksempler fra den første prototype.</Text>}
             {sortedOffers.length > 0 ? (
                 <>
                     <Text style={styles.title}>Modtagne tilbud</Text>
@@ -20,7 +27,7 @@ export default function AppDetailsScreen({ route }) {
                         Tilbuddene er sorteret efter pris, så det billigste vises først.
                     </Text>
                     {sortedOffers.map((offer, index) => (
-                        <View style={styles.offerCard} key={offer.company}>
+                        <View style={styles.offerCard} key={offer.id}>
                             <Text style={styles.title}>{offer.company}</Text>
                             <Text style={styles.offerCount}>
                                 {index + 1} ud af {sortedOffers.length} tilbud
