@@ -2,36 +2,47 @@
   "rules": {
     ".read": false,
     ".write": false,
-    "opportunities": {
-      ".read": "auth != null",
-      ".indexOn": ["ownerId", "createdAt"],
-      "$id": {
-        ".write": "auth != null && newData.exists() && ((!data.exists() && newData.child('ownerId').val() === auth.uid) || (data.exists() && data.child('ownerId').val() === auth.uid))",
-        ".validate": "newData.hasChildren(['title', 'location', 'description', 'deadlineAt', 'status', 'ownerId', 'createdAt', 'updatedAt', 'isDemo']) && newData.child('updatedAt').val() === now && (newData.child('deadlineAt').val() > now || newData.child('status').val() === 'Lukket')",
-        "title": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 120 && newData.val().matches(/.*[^ \\t\\r\\n].*/)" },
-        "location": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 120 && newData.val().matches(/.*[^ \\t\\r\\n].*/)" },
-        "description": { ".validate": "newData.isString() && newData.val().length <= 3000" },
-        "deadlineAt": { ".validate": "newData.isNumber() && newData.val() > 0 && (newData.val() > now || newData.parent().child('status').val() === 'Lukket')" },
-        "status": { ".validate": "newData.val() === 'Åben for bud' || newData.val() === 'Afventer flere naboer' || newData.val() === 'Lukket'" },
-        "ownerId": { ".validate": "newData.isString() && ((!data.exists() && newData.val() === auth.uid) || newData.val() === data.val())" },
-        "createdAt": { ".validate": "newData.isNumber() && ((!data.exists() && newData.val() === now) || newData.val() === data.val())" },
-        "updatedAt": { ".validate": "newData.isNumber() && newData.val() === now" },
-        "isDemo": { ".validate": "newData.val() === false" },
-        "$other": { ".validate": false }
-      }
-    },
-    "participants": {
-      ".read": "auth != null",
-      "$id": {
-        "$uid": {
-          ".write": "auth != null && auth.uid === $uid && (!newData.exists() || ((newData.parent().parent().parent().child('opportunities').child($id).child('status').val() === 'Åben for bud' || newData.parent().parent().parent().child('opportunities').child($id).child('status').val() === 'Afventer flere naboer') && newData.parent().parent().parent().child('opportunities').child($id).child('deadlineAt').val() > now))",
-          ".validate": "newData.hasChildren(['joinedAt'])",
-          "joinedAt": { ".validate": "newData.isNumber() && newData.val() === now" },
-          "$other": { ".validate": false }
+    "demo": {
+      ".read": true,
+      "tasks": {
+        "$task": {
+          "details": {
+            ".write": "newData.exists() && (!data.exists() || data.child('ownerId').val() === 'customer-demo')",
+            ".validate": "newData.hasChildren(['title','description','ownerId','ownerName','location','latitude','longitude','radiusMeters','deadlineAt','status','createdAt','updatedAt']) && (newData.child('status').val() === 'closed' || newData.child('deadlineAt').val() > now)",
+            "title": { ".validate": "newData.isString() && newData.val().length <= 120 && newData.val().replace(' ', '').replace('\\t', '').replace('\\r', '').replace('\\n', '').length > 0" },
+            "description": { ".validate": "newData.isString() && newData.val().length <= 2000 && newData.val().replace(' ', '').replace('\\t', '').replace('\\r', '').replace('\\n', '').length > 0" },
+            "ownerId": { ".validate": "newData.val() === 'customer-demo'" },
+            "ownerName": { ".validate": "newData.val() === root.child('demo/profiles/customer/name').val()" },
+            "location": { ".validate": "newData.val() === root.child('demo/profiles/customer/location').val()" },
+            "latitude": { ".validate": "newData.val() === root.child('demo/profiles/customer/latitude').val()" },
+            "longitude": { ".validate": "newData.val() === root.child('demo/profiles/customer/longitude').val()" },
+            "radiusMeters": { ".validate": "newData.val() === root.child('demo/profiles/customer/radiusMeters').val()" },
+            "deadlineAt": { ".validate": "newData.isNumber() && newData.val() > 0" },
+            "status": { ".validate": "newData.val() === 'open' || newData.val() === 'closed'" },
+            "createdAt": { ".validate": "newData.isNumber() && (data.exists() ? newData.val() === data.val() : newData.val() === now)" },
+            "updatedAt": { ".validate": "newData.val() === now" },
+            "$other": { ".validate": false }
+          },
+          "participants": {
+            "customer-demo": {
+              ".write": "newData.parent().parent().child('details').exists() && ((!newData.exists() && newData.parent().parent().child('details/ownerId').val() !== 'customer-demo') || (newData.exists() && newData.parent().parent().child('details/status').val() === 'open' && newData.parent().parent().child('details/deadlineAt').val() > now))",
+              ".validate": "newData.hasChildren(['name'])",
+              "name": { ".validate": "newData.val() === root.child('demo/profiles/customer/name').val()" },
+              "$other": { ".validate": false }
+            }
+          },
+          "offers": {
+            "company-demo": {
+              ".write": "newData.exists() && root.child('demo/tasks').child($task).child('details/status').val() === 'open' && root.child('demo/tasks').child($task).child('details/deadlineAt').val() > now",
+              ".validate": "newData.hasChildren(['pricePerHousehold','description','updatedAt'])",
+              "pricePerHousehold": { ".validate": "newData.isNumber() && newData.val() > 0 && newData.val() <= 100000" },
+              "description": { ".validate": "newData.isString() && newData.val().length <= 2000 && newData.val().replace(' ', '').replace('\\t', '').replace('\\r', '').replace('\\n', '').length > 0" },
+              "updatedAt": { ".validate": "newData.val() === now" },
+              "$other": { ".validate": false }
+            }
+          }
         }
       }
-    },
-    "offers": { ".read": "auth != null", ".write": false },
-    "demoParticipants": { ".read": "auth != null", ".write": false }
+    }
   }
 }

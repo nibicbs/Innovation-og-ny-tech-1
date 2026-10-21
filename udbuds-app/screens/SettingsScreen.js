@@ -1,77 +1,21 @@
-import { ActivityIndicator, Pressable, ScrollView, Switch, Text, View } from 'react-native';
-import { useState } from 'react';
-import { signOut } from 'firebase/auth';
-import { auth } from '../database/firebase';
-import { useAuth } from '../context/AuthContext';
-import { getAuthErrorMessage } from '../utils/authErrors';
-import styles from '../styles/SettingsScreenStyles';
+import { ScrollView, Text, View } from 'react-native';
+import { useDemo } from '../context/DemoContext';
+import Button from '../components/ButtonComponent';
+import { formatDistance } from '../utils/demo';
+import styles from '../styles/DemoStyles';
 
-export default function SettingsScreen() {
-    const { user } = useAuth();
-    const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-    const [loggingOut, setLoggingOut] = useState(false);
-    const [logoutError, setLogoutError] = useState('');
-
-    const logout = async () => {
-        if (loggingOut) return;
-        setLoggingOut(true);
-        setLogoutError('');
-        try {
-            await signOut(auth);
-        } catch (error) {
-            setLogoutError(getAuthErrorMessage(error));
-        } finally {
-            setLoggingOut(false);
-        }
-    };
-
-    return (
-        <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-            <Text style={styles.eyebrow}>INDSTILLINGER</Text>
-            <Text style={styles.title}>Din SammenBud</Text>
-            <Text style={styles.text}>
-                Vælg de oplysninger, der skal bruges til at finde relevante opgaver.
-            </Text>
-            <View style={styles.settingsList}>
-                <View style={styles.settingRow}>
-                    <View style={styles.account}>
-                        <Text style={styles.settingLabel}>Logget ind som</Text>
-                        <Text style={styles.settingValue}>{user?.email}</Text>
-                    </View>
-                </View>
-                <View style={styles.settingRow}>
-                    <View>
-                        <Text style={styles.settingLabel}>Din vej</Text>
-                        <Text style={styles.settingValue}>Solvænget</Text>
-                    </View>
-                </View>
-                <View style={styles.settingRow}>
-                    <View>
-                        <Text style={styles.settingLabel}>Søgeradius</Text>
-                        <Text style={styles.settingValue}>1 km</Text>
-                    </View>
-                </View>
-                <View style={styles.settingRow}>
-                    <View>
-                        <Text style={styles.settingLabel}>Nye bud og opgaver</Text>
-                        <Text style={styles.settingValue}>Notifikationer</Text>
-                    </View>
-                    <Switch
-                        value={notificationsEnabled}
-                        onValueChange={setNotificationsEnabled}
-                        trackColor={{ false: '#D4D9DC', true: '#8BBDB5' }}
-                        thumbColor={notificationsEnabled ? '#2E7D73' : '#FFFFFF'}
-                    />
-                </View>
-            </View>
-            {!!logoutError && <Text style={styles.error} accessibilityRole="alert">{logoutError}</Text>}
-            <Pressable
-                style={[styles.logoutButton, loggingOut && styles.disabled]}
-                onPress={logout} disabled={loggingOut} accessibilityRole="button"
-                accessibilityState={{ disabled: loggingOut, busy: loggingOut }}
-            >
-                {loggingOut ? <ActivityIndicator color="#17324D" /> : <Text style={styles.logoutText}>Log ud</Text>}
-            </Pressable>
-        </ScrollView>
-    );
+export default function SettingsScreen({ navigation }) {
+    const { profile, role } = useDemo();
+    return <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+        <Text style={styles.title}>Min profil</Text>
+        <View style={styles.card}>
+            <Text style={styles.heading}>{profile.name}</Text>
+            <Text style={styles.text}>{role === 'customer' ? profile.housingType : profile.industry}</Text>
+            <Text style={styles.text}>{profile.address}</Text>
+            <Text style={styles.text}>{profile.location}</Text>
+            <Text style={styles.text}>Område: {formatDistance(profile.radiusMeters)}</Text>
+        </View>
+        <Button variant="secondary" title="Mit nærområde" onPress={() => navigation.navigate('Området')} />
+        {role === 'company' && <Button variant="secondary" title="Virksomhedsprofil" onPress={() => navigation.navigate('Virksomhedsprofil')} />}
+    </ScrollView>;
 }

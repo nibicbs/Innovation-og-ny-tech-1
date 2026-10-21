@@ -1,27 +1,17 @@
-import { FlatList, Text, View } from 'react-native';
-import { useOpportunity } from '../../context/OpportunitiesContext';
-import DatabaseState, { ConnectionNotice } from '../../components/DatabaseState';
-import styles from '../../styles/UserProfileScreenStyles';
-import dbStyles from '../../styles/DatabaseStyles';
+import { ScrollView, Text, View } from 'react-native';
+import { useDemo } from '../../context/DemoContext';
+import styles from '../../styles/DemoStyles';
 
 export default function UserProfileScreen({ route }) {
-    const data = useOpportunity(route.params?.opportunityId);
-    if (data.loading || data.error || !data.opportunity) return <DatabaseState {...data} missing={!data.opportunity} />;
-    return (
-        <View style={styles.container}>
-            <Text style={styles.eyebrow}>TILMELDTE NABOER</Text>
-            <Text style={styles.title}>Tilmeldte naboer</Text>
-            <Text style={styles.text}>Deltagerne vises uden navn, e-mail eller adresse.</Text>
-            <ConnectionNotice connected={data.connected} />
-            <FlatList data={data.opportunity.participants} keyExtractor={(participant) => participant.id}
-                ListEmptyComponent={<Text style={dbStyles.empty}>Ingen har tilmeldt sig endnu.</Text>}
-                renderItem={({ item }) => (
-                    <View style={styles.addressItem}>
-                        <Text style={styles.address}>{item.label}</Text>
-                        <Text style={styles.status}>{item.isDemo ? 'Eksempel fra prototypen' : 'Tilmeldt opgaven'}</Text>
-                    </View>
-                )}
-            />
-        </View>
-    );
+    const { tasks, profile, role } = useDemo();
+    const task = tasks.find((item) => item.id === route.params?.opportunityId);
+    return <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+        <Text style={styles.title}>Tilmeldte husstande</Text>
+        <Text style={styles.text}>{task?.title}</Text>
+        {(task?.participantList || []).map(({ id, ...person }) => <View key={id} style={styles.card}>
+            <Text style={styles.heading}>{person.name}{role === 'customer' && id === profile.id ? ' (dig)' : ''}</Text>
+            <Text style={styles.small}>{task.ownerId === id ? 'Har oprettet opgaven' : 'Tilmeldt opgaven'} · 1 husstand</Text>
+        </View>)}
+        {!task?.participantCount && <Text style={styles.text}>Der er ingen tilmeldte husstande.</Text>}
+    </ScrollView>;
 }

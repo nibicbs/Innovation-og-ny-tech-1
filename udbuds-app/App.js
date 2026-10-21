@@ -1,119 +1,84 @@
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
+import { Pressable, Text, View } from 'react-native';
+import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
 import Ionicons from '@react-native-vector-icons/ionicons';
+import { DemoProvider, useDemo } from './context/DemoContext';
+import DemoStatus from './components/DemoStatus';
 import HomeScreen from './screens/HomeScreen';
-import NeighborhoodScreen from './screens/NeighborhoodScreen';
-import SettingsScreen from './screens/SettingsScreen';
-import StackNavigation from './components/StackComponent';
-import { ActivityIndicator, Pressable, Text, View } from 'react-native';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { AuthProvider, useAuth } from './context/AuthContext';
-import AuthScreen from './screens/AuthScreen';
-import authStyles from './styles/AuthScreenStyles';
-import { OpportunitiesProvider } from './context/OpportunitiesContext';
-import AddEditOpportunityScreen from './screens/AddEditOpportunityScreen';
+import MapScreen from './screens/MapScreen';
 import MyOpportunitiesScreen from './screens/MyOpportunitiesScreen';
+import SettingsScreen from './screens/SettingsScreen';
+import DetailsScreen from './screens/DetailsScreen';
+import AddEditOpportunityScreen from './screens/AddEditOpportunityScreen';
+import UserProfileScreen from './screens/StackScreens/UserProfileScreen';
+import AppDetailsScreen from './screens/StackScreens/AppDetailsScreen';
+import OfferScreen from './screens/OfferScreen';
+import CompanyProfileScreen from './screens/CompanyProfileScreen';
+import NeighborhoodScreen from './screens/NeighborhoodScreen';
+import styles from './styles/DemoStyles';
 
 const Tab = createBottomTabNavigator();
-const RootStack = createStackNavigator();
+const Stack = createStackNavigator();
+const icons = { Opgaver: 'home-outline', Kort: 'map-outline', 'Mine opgaver': 'clipboard-outline', Profil: 'person-outline' };
 
-// Bundmenuen samler appens tre hovedområder.
 function Tabs() {
-  return (
-    <Tab.Navigator
-      screenOptions={({ route }) => ({
-        headerStyle: {
-          backgroundColor: '#17324D',
-        },
-        headerTitleStyle: {
-          color: '#FFFFFF',
-          fontSize: 20,
-          fontWeight: '700',
-        },
-        tabBarStyle: {
-          backgroundColor: '#17324D',
-          borderTopWidth: 0,
-          paddingBottom: 10,
-          paddingTop: 4,
-        },
-        tabBarActiveTintColor: '#F0B44D',
-        tabBarInactiveTintColor: '#B9C7D3',
-        tabBarIcon: ({ color, size, focused }) => {
-          let iconName;
-
-          if (route.name === 'Opgaver') {
-            iconName = focused ? 'home' : 'home-outline';
-          } else if (route.name === 'Overblik') {
-            iconName = focused ? 'people' : 'people-outline';
-          } else if (route.name === 'Mine opgaver') {
-            iconName = focused ? 'clipboard' : 'clipboard-outline';
-          } else {
-            iconName = focused ? 'settings' : 'settings-outline';
-          }
-
-          return <Ionicons name={iconName} size={size} color={color} />;
-        },
-      })}
-    >
-      <Tab.Screen name="Opgaver" component={HomeScreen} />
-      <Tab.Screen name="Mine opgaver" component={MyOpportunitiesScreen} />
-      <Tab.Screen name="Overblik" component={NeighborhoodScreen} />
-      <Tab.Screen name="Indstillinger" component={SettingsScreen} />
-    </Tab.Navigator>
-  );
+    const { role } = useDemo();
+    const insets = useSafeAreaInsets();
+    return <Tab.Navigator screenOptions={({ route }) => ({
+        headerShown: false,
+        tabBarActiveTintColor: '#F2BD53',
+        tabBarInactiveTintColor: '#C4D3DD',
+        // Plads til både labels og telefonens egen navigationsbjælke.
+        tabBarStyle: [styles.tabBar, { height: 72 + insets.bottom, paddingBottom: insets.bottom + 10 }],
+        tabBarLabelStyle: styles.tabLabel,
+        tabBarIcon: ({ color, size, focused }) => <Ionicons
+            name={focused ? icons[route.name].replace('-outline', '') : icons[route.name]}
+            size={size} color={color} />,
+    })}>
+        <Tab.Screen name="Opgaver" component={HomeScreen} />
+        <Tab.Screen name="Kort" component={MapScreen} />
+        <Tab.Screen name="Mine opgaver" component={MyOpportunitiesScreen}
+            options={{ tabBarLabel: role === 'company' ? 'Mine bud' : 'Mine opgaver' }} />
+        <Tab.Screen name="Profil" component={SettingsScreen} />
+    </Tab.Navigator>;
 }
 
-function SignedInNavigation() {
-  return (
-    <NavigationContainer>
-      <RootStack.Navigator>
-        <RootStack.Screen name="Tabs" component={Tabs} options={{ headerShown: false }} />
-        <RootStack.Screen name="OpgaveStack" component={StackNavigation} options={{ headerShown: false }} />
-        <RootStack.Screen name="OpretRedigerOpgave" component={AddEditOpportunityScreen}
-          options={({ route }) => ({ title: route.params?.opportunityId ? 'Redigér opgave' : 'Opret opgave' })} />
-      </RootStack.Navigator>
-    </NavigationContainer>
-  );
-}
-
-function AppNavigation() {
-  const { user, loading, sessionError, retrySession } = useAuth();
-
-  if (loading) {
-    return (
-      <View style={authStyles.loading}>
-        <ActivityIndicator size="large" color="#2E7D73" />
-        <Text style={authStyles.subtitle}>Henter din konto…</Text>
-      </View>
-    );
-  }
-
-  if (sessionError) {
-    return (
-      <View style={authStyles.loading}>
-        <Text style={authStyles.error}>Din konto kunne ikke hentes. Prøv igen.</Text>
-        <Pressable style={authStyles.primaryButton} onPress={retrySession} accessibilityRole="button">
-          <Text style={authStyles.primaryText}>Prøv igen</Text>
-        </Pressable>
-      </View>
-    );
-  }
-
-  // Et kontoskift fjerner alle lyttere, data og tidligere navigation fra den gamle konto.
-  return user ? (
-    <OpportunitiesProvider key={user.uid}>
-      <SignedInNavigation />
-    </OpportunitiesProvider>
-  ) : <AuthScreen />;
+function DemoApp() {
+    const { role, setRole, profile, loading, error } = useDemo();
+    if (loading || error || !profile) return <><StatusBar style="dark" /><DemoStatus /></>;
+    return <SafeAreaView style={styles.appShell} edges={['top', 'left', 'right']}>
+        <StatusBar style="light" />
+        <View style={styles.banner}>
+            <View style={styles.bannerIdentity}>
+                <Text style={styles.welcome}>Velkommen til SamBud,</Text>
+                <Text style={styles.bannerName}>{profile.name}</Text>
+            </View>
+            <Pressable style={({ pressed }) => [styles.roleSwitch, pressed && styles.pressed]} accessibilityRole="button"
+                accessibilityLabel={role === 'customer' ? 'Skift til virksomhed' : 'Skift til privat'}
+                onPress={() => setRole(role === 'customer' ? 'company' : 'customer')}>
+                <Ionicons name="swap-horizontal-outline" size={16} color="#E1EAF0" />
+                <Text style={styles.roleText}>{role === 'customer' ? 'Virksomhed' : 'Privat'}</Text>
+            </Pressable>
+        </View>
+        {/* Rolleskift starter på opgavelisten, så gamle formularer ikke følger med. */}
+        <NavigationContainer key={role}>
+            <Stack.Navigator screenOptions={{ headerTintColor: '#17324D', headerStyle: { backgroundColor: '#F6F2EA' }, headerShadowVisible: false }}>
+                <Stack.Screen name="Tabs" component={Tabs} options={{ headerShown: false }} />
+                <Stack.Screen name="Opgavedetaljer" component={DetailsScreen} />
+                <Stack.Screen name="OpretRedigerOpgave" component={AddEditOpportunityScreen} options={{ title: 'Opret / redigér opgave' }} />
+                <Stack.Screen name="Tilmeldte naboer" component={UserProfileScreen} />
+                <Stack.Screen name="Virksomheders bud" component={AppDetailsScreen} />
+                <Stack.Screen name="Afgiv bud" component={OfferScreen} />
+                <Stack.Screen name="Virksomhedsprofil" component={CompanyProfileScreen} />
+                <Stack.Screen name="Området" component={NeighborhoodScreen} />
+            </Stack.Navigator>
+        </NavigationContainer>
+    </SafeAreaView>;
 }
 
 export default function App() {
-  return (
-    <SafeAreaProvider>
-      <AuthProvider>
-        <AppNavigation />
-      </AuthProvider>
-    </SafeAreaProvider>
-  );
+    return <SafeAreaProvider><DemoProvider><DemoApp /></DemoProvider></SafeAreaProvider>;
 }

@@ -1,65 +1,26 @@
 import { ScrollView, Text, View } from 'react-native';
-import styles from '../../styles/AppDetailsScreenStyles';
-import { useOpportunity } from '../../context/OpportunitiesContext';
-import DatabaseState, { ConnectionNotice } from '../../components/DatabaseState';
-import dbStyles from '../../styles/DatabaseStyles';
+import { useDemo } from '../../context/DemoContext';
+import Button from '../../components/ButtonComponent';
+import { isOpen } from '../../utils/demo';
+import styles from '../../styles/DemoStyles';
 
-export default function AppDetailsScreen({ route }) {
-    const data = useOpportunity(route.params?.opportunityId);
-    if (data.loading || data.error || !data.opportunity) return <DatabaseState {...data} missing={!data.opportunity} />;
-    const offers = data.opportunity.offers;
-    const sortedOffers = [...offers].sort(
-        (firstOffer, secondOffer) => firstOffer.discountedPrice - secondOffer.discountedPrice,
-    );
-
-    return (
-        <ScrollView
-            style={styles.container}
-            contentContainerStyle={styles.contentContainer}
-        >
-            <Text style={styles.eyebrow}>VIRKSOMHEDERS BUD</Text>
-            <ConnectionNotice connected={data.connected} />
-            {data.opportunity.isDemo && <Text style={dbStyles.demo}>Tilbuddene er eksempler fra den første prototype.</Text>}
-            {sortedOffers.length > 0 ? (
-                <>
-                    <Text style={styles.title}>Modtagne tilbud</Text>
-                    <Text style={styles.text}>
-                        Tilbuddene er sorteret efter pris, så det billigste vises først.
-                    </Text>
-                    {sortedOffers.map((offer, index) => (
-                        <View style={styles.offerCard} key={offer.id}>
-                            <Text style={styles.title}>{offer.company}</Text>
-                            <Text style={styles.offerCount}>
-                                {index + 1} ud af {sortedOffers.length} tilbud
-                            </Text>
-                            {index === 0 && (
-                                <Text style={styles.cheapestNote}>Billigste tilbud</Text>
-                            )}
-                            <Text style={styles.description}>{offer.description}</Text>
-                            <Text style={styles.offerLabel}>Normalpris</Text>
-                            <Text style={styles.originalPrice}>
-                                {offer.originalPrice.toLocaleString('da-DK')} kr.
-                            </Text>
-                            <Text style={styles.offerLabel}>Pris med mængderabat</Text>
-                            <Text style={styles.discountedPrice}>
-                                {offer.discountedPrice.toLocaleString('da-DK')} kr.
-                            </Text>
-                            <Text style={styles.discountText}>
-                                I sparer {(
-                                    offer.originalPrice - offer.discountedPrice
-                                ).toLocaleString('da-DK')} kr., fordi flere husstande går sammen.
-                            </Text>
-                        </View>
-                    ))}
-                </>
-            ) : (
-                <>
-                    <Text style={styles.title}>Afventer tilbud</Text>
-                    <Text style={styles.text}>
-                        Der er endnu ikke modtaget et tilbud fra en virksomhed på denne opgave.
-                    </Text>
-                </>
-            )}
-        </ScrollView>
-    );
+export default function AppDetailsScreen({ navigation, route }) {
+    const { tasks, profiles, role, profile } = useDemo();
+    const task = tasks.find((item) => item.id === route.params?.opportunityId);
+    const offers = task?.offerList || [];
+    return <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+        <Text style={styles.title}>Virksomheders bud</Text>
+        <Text style={styles.text}>{task?.title}</Text>
+        {!offers.length && <Text style={styles.notice}>Opgaven venter på sit første bud fra en virksomhed.</Text>}
+        {offers.map((offer) => <View key={offer.id} style={styles.card}>
+            <Text style={styles.heading}>{offer.id === profiles.company.id ? profiles.company.name : 'Virksomhed'}</Text>
+            <Text style={styles.price}>{offer.priceLabel}</Text>
+            <Text style={styles.accent}>Pr. husstand · inkl. moms</Text>
+            <Text style={styles.text}>{offer.description}</Text>
+            <Button variant="secondary" title="Se virksomheden" onPress={() => navigation.navigate('Virksomhedsprofil')} />
+        </View>)}
+        {role === 'company' && isOpen(task) && task.distance <= profile.radiusMeters && <Button
+            title={task.offers[profile.id] ? 'Redigér mit bud' : 'Afgiv et bud'}
+            onPress={() => navigation.navigate('Afgiv bud', { opportunityId: task.id })} />}
+    </ScrollView>;
 }

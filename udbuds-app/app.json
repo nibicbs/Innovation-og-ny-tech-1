@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "SammenBud",
-    "slug": "sammenbud",
+    "name": "SamBud",
+    "slug": "sambud",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",

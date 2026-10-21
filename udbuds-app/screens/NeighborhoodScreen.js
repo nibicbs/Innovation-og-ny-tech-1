@@ -1,23 +1,19 @@
 import { ScrollView, Text, View } from 'react-native';
-import { useOpportunities } from '../context/OpportunitiesContext';
-import { canJoinOpportunity } from '../utils/opportunities';
-import DatabaseState, { ConnectionNotice } from '../components/DatabaseState';
-import styles from '../styles/NeighborhoodScreenStyles';
+import { useDemo } from '../context/DemoContext';
+import { nearbyTasks, areaSummary, formatDistance } from '../utils/demo';
+import styles from '../styles/DemoStyles';
 
 export default function NeighborhoodScreen() {
-    const data = useOpportunities();
-    if (data.loading || data.error) return <DatabaseState {...data} />;
-    const realTasks = data.opportunities.filter((task) => !task.isDemo);
-    const activeTasks = realTasks.filter((task) => canJoinOpportunity(task));
-    const participants = new Set(realTasks.flatMap((task) => task.participants.filter((p) => !p.isDemo).map((p) => p.id)));
-    return (
-        <ScrollView style={styles.container}>
-            <Text style={styles.eyebrow}>FÆLLESSKABET</Text>
-            <Text style={styles.title}>Fælles overblik</Text>
-            <Text style={styles.text}>Aktivitet på tværs af appens områder. Eksempelopgaver er ikke medregnet.</Text>
-            <ConnectionNotice connected={data.connected} />
-            <View style={styles.summary}><Text style={styles.summaryNumber}>{participants.size}</Text><Text style={styles.summaryLabel}>brugere tilmeldt fælles opgaver</Text></View>
-            <View style={styles.summary}><Text style={styles.summaryNumber}>{activeTasks.length}</Text><Text style={styles.summaryLabel}>opgaver med åben tilmelding</Text></View>
-        </ScrollView>
-    );
+    const { profile, tasks } = useDemo();
+    const nearby = nearbyTasks(tasks, profile);
+    const summary = areaSummary(nearby);
+    return <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+        <Text style={styles.title}>{profile.location}</Text>
+        <Text style={styles.text}>Dit nærområde · {formatDistance(profile.radiusMeters)}</Text>
+        <View style={styles.card}>
+            <Text style={styles.heading}>{summary.openCount} åbne opgaver</Text>
+            <Text style={styles.text}>{summary.participantCount} tilmeldinger på tværs af opgaver</Text>
+            <Text style={styles.text}>{summary.offerCount} bud fra virksomheder</Text>
+        </View>
+    </ScrollView>;
 }

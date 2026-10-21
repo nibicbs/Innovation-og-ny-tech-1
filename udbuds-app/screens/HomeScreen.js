@@ -1,47 +1,47 @@
-import { StatusBar } from 'expo-status-bar';
-import { FlatList, Pressable, Text, View } from 'react-native';
-import { useOpportunities } from '../context/OpportunitiesContext';
-import { formatDeadline } from '../utils/opportunities';
-import ButtonComponent from '../components/ButtonComponent';
-import DatabaseState, { ConnectionNotice } from '../components/DatabaseState';
-import styles from '../styles/HomeScreenStyles';
-import dbStyles from '../styles/DatabaseStyles';
+import { useState } from 'react';
+import { Pressable, ScrollView, Text, View } from 'react-native';
+import { useDemo } from '../context/DemoContext';
+import Button from '../components/ButtonComponent';
+import TaskCard from '../components/TaskCard';
+import { OfflineNotice } from '../components/DemoStatus';
+import { nearbyTasks, customerTasks, formatDistance } from '../utils/demo';
+import styles from '../styles/DemoStyles';
+import filterStyles from '../styles/HomeScreenStyles';
 
 export default function HomeScreen({ navigation }) {
-    const data = useOpportunities();
-    return (
-        <View style={styles.container}>
-            <Text style={styles.eyebrow}>SAMMEN I NÆROMRÅDET</Text>
-            <Text style={styles.title}>Fælles opgaver</Text>
-            <Text style={styles.intro}>Saml naboerne, og få virksomheder til at byde på opgaven.</Text>
-            <View style={dbStyles.actions}>
-                <ButtonComponent title="Opret opgave" onPress={() => navigation.navigate('OpretRedigerOpgave')}
-                    disabled={data.loading || !!data.error || !data.connected} />
-            </View>
-            {data.loading || data.error ? <DatabaseState {...data} /> : (
-                <FlatList
-                    data={data.opportunities} keyExtractor={(item) => item.id}
-                    ListHeaderComponent={<ConnectionNotice connected={data.connected} />}
-                    ListEmptyComponent={<Text style={dbStyles.empty}>Der er ingen opgaver endnu. Opret den første fælles opgave.</Text>}
-                    renderItem={({ item }) => (
-                        <Pressable style={[styles.item, item.isUserParticipating && styles.joinedItem]}
-                            accessibilityRole="button"
-                            onPress={() => navigation.navigate('OpgaveStack', { screen: 'Opgavedetaljer', params: { opportunityId: item.id } })}>
-                            <View style={styles.itemHeader}>
-                                <Text style={styles.itemTitle}>{item.title}</Text>
-                                {item.isUserParticipating && <Text style={styles.joinedLabel}>DU ER TILMELDT</Text>}
-                            </View>
-                            <Text style={styles.itemMeta}>{item.location}</Text>
-                            {item.isDemo && <Text style={dbStyles.demo}>Eksempelopgave</Text>}
-                            <View style={styles.itemFooter}>
-                                <Text style={styles.status}>{item.status}</Text>
-                                <Text style={styles.deadline}>{formatDeadline(item.deadlineAt)}</Text>
-                            </View>
-                        </Pressable>
-                    )}
-                />
-            )}
-            <StatusBar style="auto" />
-        </View>
-    );
+    const { role, profile, tasks } = useDemo();
+    const [filter, setFilter] = useState('available');
+    const visibleTasks = role === 'customer'
+        ? customerTasks(tasks, profile, filter)
+        : nearbyTasks(tasks, profile);
+    let emptyMessage = 'Der er endnu ingen opgaver i området.';
+    if (role === 'customer') {
+        emptyMessage = filter === 'joined'
+            ? 'Din husstand er endnu ikke tilmeldt nogen opgaver.'
+            : 'Der er ingen nye opgaver, du kan tilmelde dig lige nu.';
+    }
+    return <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+        <Text style={styles.eyebrow}>SAMMEN I NÆROMRÅDET</Text>
+        <Text style={styles.title}>Fælles opgaver</Text>
+        <Text style={styles.text}>{role === 'customer' && filter === 'joined'
+            ? 'Din husstands tilmeldinger'
+            : `${profile.location} · Inden for ${formatDistance(profile.radiusMeters)}`}</Text>
+        <OfflineNotice />
+        {role === 'customer' && <View style={filterStyles.bar} accessibilityRole="tablist">
+            <Pressable style={[filterStyles.tab, filter === 'available' && filterStyles.selected]}
+                accessibilityRole="tab" accessibilityState={{ selected: filter === 'available' }}
+                onPress={() => setFilter('available')}>
+                <Text style={[filterStyles.text, filter === 'available' && filterStyles.selectedText]}>Kan tilmeldes</Text>
+            </Pressable>
+            <Pressable style={[filterStyles.tab, filter === 'joined' && filterStyles.selected]}
+                accessibilityRole="tab" accessibilityState={{ selected: filter === 'joined' }}
+                onPress={() => setFilter('joined')}>
+                <Text style={[filterStyles.text, filter === 'joined' && filterStyles.selectedText]}>Tilmeldte</Text>
+            </Pressable>
+        </View>}
+        {role === 'customer' && <Button title="Opret en fælles opgave" onPress={() => navigation.navigate('OpretRedigerOpgave')} />}
+        {visibleTasks.map((task) => <TaskCard key={task.id} task={task}
+            onPress={() => navigation.navigate('Opgavedetaljer', { opportunityId: task.id })} />)}
+        {!visibleTasks.length && <Text style={styles.text}>{emptyMessage}</Text>}
+    </ScrollView>;
 }

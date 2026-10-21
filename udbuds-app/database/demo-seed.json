@@ -1,0 +1,138 @@
+{
+  "profiles": {
+    "customer": {
+      "id": "customer-demo",
+      "name": "Maja Jensen",
+      "address": "Bøgeengen 12",
+      "housingType": "Rækkehus",
+      "location": "Frederiksberg",
+      "latitude": 55.6815,
+      "longitude": 12.531,
+      "radiusMeters": 1500
+    },
+    "company": {
+      "id": "company-demo",
+      "name": "NaboService ApS",
+      "address": "Bøgeengen 4",
+      "industry": "Have- og ejendomsservice",
+      "location": "Frederiksberg",
+      "latitude": 55.679,
+      "longitude": 12.537,
+      "radiusMeters": 2500,
+      "description": "Vi hjælper nabolaget med praktiske opgaver. Når flere husstande samler deres opgaver, kan vi planlægge arbejdet på samme dag.",
+      "services": "Vinduespudsning, hækklipning, fliserens og rensning af tagrender."
+    }
+  },
+  "tasks": {
+    "vinduer": {
+      "details": {
+        "title": "Fælles vinduespudsning",
+        "description": "Udvendig pudsning af op til 12 vinduer pr. husstand i stueplan. Vi vil gerne samle besøgene på én hverdag. Virksomheden bedes angive en pris pr. husstand og hvad der er inkluderet.",
+        "ownerId": "customer-demo",
+        "ownerName": "Maja Jensen",
+        "location": "Frederiksberg",
+        "latitude": 55.6815,
+        "longitude": 12.531,
+        "radiusMeters": 1500,
+        "status": "open"
+      },
+      "participants": {
+        "customer-demo": { "name": "Maja Jensen" },
+        "nabo-1": { "name": "Emil Holm" },
+        "nabo-2": { "name": "Sofie Lund" },
+        "nabo-3": { "name": "Jonas Berg" }
+      }
+    },
+    "haek": {
+      "details": {
+        "title": "Hækklipning for naboerne",
+        "description": "Klipning af op til 20 meter hæk pr. husstand, højst 1,8 meter høj. Buddet skal omfatte oprydning og bortkørsel af hækaffald. Vi aftaler en fælles dag.",
+        "ownerId": "nabo-4",
+        "ownerName": "Freja Madsen",
+        "location": "Omkring Fasanvej",
+        "latitude": 55.6855,
+        "longitude": 12.524,
+        "radiusMeters": 1000,
+        "status": "open"
+      },
+      "participants": {
+        "nabo-4": { "name": "Freja Madsen" },
+        "nabo-5": { "name": "Oliver Dahl" },
+        "nabo-6": { "name": "Alma Sørensen" }
+      }
+    },
+    "fliser": {
+      "details": {
+        "title": "Fliserens af små terrasser",
+        "description": "Rensning af op til 25 m² fliseterrasse pr. husstand. Der er adgang til vand og strøm. Beskriv rensemetoden og om efterbehandling er inkluderet.",
+        "ownerId": "nabo-7",
+        "ownerName": "Ida Nørgaard",
+        "location": "Ved Aksel Møllers Have",
+        "latitude": 55.6885,
+        "longitude": 12.532,
+        "radiusMeters": 1200,
+        "status": "open"
+      },
+      "participants": {
+        "nabo-7": { "name": "Ida Nørgaard" },
+        "nabo-8": { "name": "William Koch" },
+        "customer-demo": { "name": "Maja Jensen" },
+        "nabo-9": { "name": "Clara Bak" },
+        "nabo-10": { "name": "Noah Friis" }
+      }
+    },
+    "tagrender": {
+      "details": {
+        "title": "Fælles rensning af tagrender",
+        "description": "Rensning af op til 25 meter tagrende pr. husstand på huse i ét plan. Buddet skal inkludere kontrol af nedløb og opsamling af affald.",
+        "ownerId": "nabo-11",
+        "ownerName": "Oscar Lind",
+        "location": "Ved Forum",
+        "latitude": 55.6835,
+        "longitude": 12.552,
+        "radiusMeters": 600,
+        "status": "open"
+      },
+      "participants": {
+        "nabo-11": { "name": "Oscar Lind" },
+        "nabo-12": { "name": "Ella Vester" }
+      }
+    },
+    "buske": {
+      "details": {
+        "title": "Beskæring af buske i haverne",
+        "description": "Beskæring af op til seks mindre buske pr. husstand. Vi vil gerne have arbejdet udført på samme dag. Buddet skal inkludere oprydning og bortkørsel af grenaffald.",
+        "ownerId": "nabo-13",
+        "ownerName": "Laura Winther",
+        "location": "Ved Frederiksberg Have",
+        "latitude": 55.6788,
+        "longitude": 12.5265,
+        "radiusMeters": 1000,
+        "status": "open"
+      },
+      "participants": {
+        "nabo-13": { "name": "Laura Winther" },
+        "nabo-14": { "name": "Victor Birk" }
+      }
+    },
+    "indkoersler": {
+      "details": {
+        "title": "Rensning af indkørsler",
+        "description": "Rensning af op til 30 m² belægning i hver indkørsel. Der er adgang til vand hos alle husstande. Beskriv gerne metode og eventuel efterbehandling i buddet.",
+        "ownerId": "nabo-15",
+        "ownerName": "Anna Møller",
+        "location": "Ved Falkoner Allé",
+        "latitude": 55.686,
+        "longitude": 12.5375,
+        "radiusMeters": 1200,
+        "status": "open"
+      },
+      "participants": {
+        "nabo-15": { "name": "Anna Møller" },
+        "nabo-16": { "name": "Mikkel Strand" },
+        "nabo-17": { "name": "Emma Lind" },
+        "nabo-18": { "name": "Lucas Skov" }
+      }
+    }
+  }
+}

@@ -3,119 +3,156 @@ import assert from 'node:assert/strict';
 import { after, before, beforeEach, test } from 'node:test';
 import { initializeTestEnvironment, assertFails, assertSucceeds } from '@firebase/rules-unit-testing';
 
-const projectId = 'demo-sambud-tests';
+const seedData = JSON.parse(readFileSync(new URL('../database/demo-seed.json', import.meta.url), 'utf8'));
+const source = readFileSync(new URL('../utils/demo.js', import.meta.url), 'utf8');
+const { canJoin, distanceMeters, parseDate, parsePrice, nearbyTasks } =
+    await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
 let env;
-const task = (ownerId = 'alice', extra = {}) => ({
-    title: 'Fælles vinduespudsning', location: 'Solvænget', description: '',
-    deadlineAt: Date.now() + 86400000, status: 'Åben for bud', ownerId,
-    createdAt: { '.sv': 'timestamp' }, updatedAt: { '.sv': 'timestamp' }, isDemo: false, ...extra,
+const db = () => env.unauthenticatedContext().database();
+const stamp = { '.sv': 'timestamp' };
+const offer = (extra = {}) => ({ pricePerHousehold: 350, description: 'Inkl. moms og oprydning.', updatedAt: stamp, ...extra });
+const details = (extra = {}) => ({
+    title: 'Fælles opgave', description: 'En praktisk opgave for naboerne.',
+    ownerId: 'customer-demo', ownerName: 'Maja Jensen', location: 'Frederiksberg',
+    latitude: 55.6815, longitude: 12.531, radiusMeters: 1500,
+    status: 'open', deadlineAt: Date.now() + 86400000,
+    createdAt: stamp, updatedAt: stamp, ...extra,
 });
-const stamp = () => ({ joinedAt: { '.sv': 'timestamp' } });
-const db = (uid) => env.authenticatedContext(uid).database();
-const seed = async (data) => env.withSecurityRulesDisabled((context) => context.database().ref().set(data));
+const admin = (action) => env.withSecurityRulesDisabled((context) => action(context.database()));
 
 before(async () => {
-    env = await initializeTestEnvironment({ projectId, database: {
+    env = await initializeTestEnvironment({ projectId: 'demo-sambud-tests', database: {
         host: '127.0.0.1', port: 9000,
         rules: readFileSync(new URL('../database/database.rules.json', import.meta.url), 'utf8'),
     } });
 });
-beforeEach(async () => { await env.clearDatabase(); });
+beforeEach(async () => {
+    await env.clearDatabase();
+    const demo = structuredClone(seedData);
+    for (const task of Object.values(demo.tasks)) {
+        Object.assign(task.details, { createdAt: 1000, updatedAt: 1000, deadlineAt: Date.now() + 86400000 });
+    }
+    await admin((database) => database.ref().set({ demo, privateData: { untouched: true } }));
+});
 after(async () => { await env?.cleanup(); });
 
-test('signed-out users cannot read or write; signed-in users can read app data', async () => {
-    const guest = env.unauthenticatedContext().database();
-    for (const path of ['opportunities', 'participants', 'offers', 'demoParticipants']) {
-        await assertFails(guest.ref(path).get());
-        await assertSucceeds(db('alice').ref(path).get());
+test('no login: demo is readable; root, old data and profiles cannot be changed', async () => {
+    const guest = db();
+    await assertSucceeds(guest.ref('demo').get());
+    for (const path of ['', 'privateData', 'opportunities', 'participants', 'offers']) {
+        await assertFails(guest.ref(path || '/').get());
+        await assertFails(guest.ref(`${path}/injected`).set(true));
     }
-    await assertFails(guest.ref('opportunities/test').set(task()));
+    await assertFails(guest.ref('demo/profiles/customer/name').set('Andet navn'));
+    await assertFails(guest.ref('demo').remove());
 });
 
-test('creation and owner participation succeed atomically', async () => {
-    await assertSucceeds(db('alice').ref().update({ 'opportunities/test': task(), 'participants/test/alice': stamp() }));
-    assert.equal((await db('alice').ref('participants/test/alice').get()).exists(), true);
+test('create task and enroll demo household atomically', async () => {
+    await assertSucceeds(db().ref('demo/tasks/new').update({
+        details: details(), 'participants/customer-demo': { name: 'Maja Jensen' },
+    }));
+    const result = (await db().ref('demo/tasks/new').get()).val();
+    assert.equal(result.participants['customer-demo'].name, 'Maja Jensen');
+    assert.equal(typeof result.details.createdAt, 'number');
 });
 
-test('a foreign participation in the creation batch rejects the entire batch', async () => {
-    await assertFails(db('alice').ref().update({ 'opportunities/test': task(), 'participants/test/bob': stamp() }));
-    assert.equal((await db('alice').ref('opportunities/test').get()).exists(), false);
+test('only demo-owned tasks can be edited; fixed profile and creation time are preserved', async () => {
+    const task = db().ref('demo/tasks/vinduer/details');
+    await assertSucceeds(task.update({ title: 'Ny titel', updatedAt: stamp }));
+    for (const extra of [{ ownerId: 'nabo-1' }, { ownerName: 'Andet navn' }, { createdAt: 5000 }, { latitude: 0 }, { radiusMeters: 100000 }]) {
+        await assertFails(task.update({ ...extra, updatedAt: stamp }));
+    }
+    await assertFails(db().ref('demo/tasks/haek/details').update({ title: 'Ny titel', updatedAt: stamp }));
+    await assertFails(task.remove());
 });
 
-test('only owner may edit; ownership and createdAt cannot be changed', async () => {
-    await seed({ opportunities: { test: task('alice', { createdAt: 1000 }) } });
-    await assertSucceeds(db('alice').ref('opportunities/test').update({ title: 'Ny titel', updatedAt: { '.sv': 'timestamp' } }));
-    await assertFails(db('bob').ref('opportunities/test').update({ title: 'Andens titel', updatedAt: { '.sv': 'timestamp' } }));
-    await assertFails(db('alice').ref('opportunities/test').update({ ownerId: 'bob', updatedAt: { '.sv': 'timestamp' } }));
-    await assertFails(db('alice').ref('opportunities/test').update({ createdAt: 5000, updatedAt: { '.sv': 'timestamp' } }));
-    await assertFails(db('alice').ref('opportunities/test').remove());
-});
-
-test('invalid records, unknown fields, demo impersonation and invented owners fail', async () => {
-    for (const extra of [{ title: '' }, { title: '   ' }, { location: '' }, { deadlineAt: 1 }, { status: 'Ukendt' }, { ownerId: 'bob' }, { isDemo: true }, { expectedCost: 1 }, { title: 'x'.repeat(121) }]) {
-        await assertFails(db('alice').ref('opportunities/test').set(task('alice', extra)));
+test('malformed task data and past deadlines fail', async () => {
+    for (const extra of [{ title: '' }, { title: '  ' }, { description: ' \n ' }, { title: 'x'.repeat(121) }, { deadlineAt: 1 }, { status: 'other' }, { extra: true }]) {
+        await assertFails(db().ref('demo/tasks/new/details').set(details(extra)));
     }
 });
 
-test('two users can join simultaneously without lost or duplicate participants', async () => {
-    await seed({ opportunities: { test: task() } });
-    await Promise.all([
-        assertSucceeds(db('alice').ref('participants/test/alice').set(stamp())),
-        assertSucceeds(db('bob').ref('participants/test/bob').set(stamp())),
-    ]);
-    await assertSucceeds(db('alice').ref('participants/test/alice').set(stamp()));
-    assert.equal((await db('alice').ref('participants/test').get()).numChildren(), 2);
+test('joining is idempotent and leaving preserves fictional neighbors', async () => {
+    const member = db().ref('demo/tasks/haek/participants/customer-demo');
+    await assertSucceeds(member.set({ name: 'Maja Jensen' }));
+    await assertSucceeds(member.set({ name: 'Maja Jensen' }));
+    assert.equal((await db().ref('demo/tasks/haek/participants').get()).numChildren(), 4);
+    await assertSucceeds(member.remove());
+    assert.equal((await db().ref('demo/tasks/haek/participants').get()).numChildren(), 3);
+    await assertFails(db().ref('demo/tasks/haek/participants/nabo-4').remove());
+    await assertFails(member.set({ name: 'Falsk navn' }));
+    await assertFails(db().ref('demo/tasks/haek/participants/new-person').set({ name: 'Ny person' }));
+    await assertFails(db().ref('demo/tasks/vinduer/participants/customer-demo').remove());
 });
 
-test('users cannot enroll or remove another user, including the task owner', async () => {
-    await seed({ opportunities: { test: task() }, participants: { test: { bob: { joinedAt: 1000 } } } });
-    await assertFails(db('alice').ref('participants/test/bob').set(stamp()));
-    await assertFails(db('alice').ref('participants/test/bob').remove());
-    await assertSucceeds(db('bob').ref('participants/test/bob').remove());
+test('closed, expired and missing tasks reject joins and offers; leaving stays possible', async () => {
+    await admin(async (database) => {
+        await database.ref('demo/tasks/haek/details/status').set('closed');
+        await database.ref('demo/tasks/fliser/details/deadlineAt').set(1);
+    });
+    for (const id of ['haek', 'fliser', 'missing']) {
+        await assertFails(db().ref(`demo/tasks/${id}/participants/customer-demo`).set({ name: 'Maja Jensen' }));
+        await assertFails(db().ref(`demo/tasks/${id}/offers/company-demo`).set(offer()));
+    }
+    await assertSucceeds(db().ref('demo/tasks/fliser/participants/customer-demo').remove());
 });
 
-test('joining closed, expired or missing tasks fails; leaving is still allowed', async () => {
-    await seed({ opportunities: { closed: task('alice', { status: 'Lukket' }), expired: task('alice', { deadlineAt: 1 }) }, participants: { closed: { bob: { joinedAt: 1000 } } } });
-    for (const id of ['closed', 'expired', 'missing']) await assertFails(db('bob').ref(`participants/${id}/bob`).set(stamp()));
-    await assertSucceeds(db('bob').ref('participants/closed/bob').remove());
+test('demo owner can close and reopen with a future deadline', async () => {
+    const task = db().ref('demo/tasks/vinduer/details');
+    await assertSucceeds(task.update({ status: 'closed', deadlineAt: 1, updatedAt: stamp }));
+    await assertFails(task.update({ status: 'open', updatedAt: stamp }));
+    await assertSucceeds(task.update({ status: 'open', deadlineAt: Date.now() + 86400000, updatedAt: stamp }));
 });
 
-test('owner may close a task and reopen it with a future deadline', async () => {
-    await seed({ opportunities: { test: task('alice', { deadlineAt: 1 }) } });
-    await assertSucceeds(db('alice').ref('opportunities/test').update({ status: 'Lukket', updatedAt: { '.sv': 'timestamp' } }));
-    await assertFails(db('alice').ref('opportunities/test').update({ status: 'Åben for bud', updatedAt: { '.sv': 'timestamp' } }));
-    await assertSucceeds(db('alice').ref('opportunities/test').update({ status: 'Åben for bud', deadlineAt: Date.now() + 86400000, updatedAt: { '.sv': 'timestamp' } }));
+test('offer price is per household, persists after a join, and edits replace the same offer', async () => {
+    const target = db().ref('demo/tasks/haek/offers/company-demo');
+    await assertSucceeds(target.set(offer()));
+    await assertSucceeds(db().ref('demo/tasks/haek/participants/customer-demo').set({ name: 'Maja Jensen' }));
+    assert.equal((await target.get()).val().pricePerHousehold, 350);
+    await assertSucceeds(target.set(offer({ pricePerHousehold: 299.95 })));
+    assert.equal((await db().ref('demo/tasks/haek/offers').get()).numChildren(), 1);
+    assert.equal((await target.get()).val().pricePerHousehold, 299.95);
 });
 
-test('clients cannot change prices, company offers or fictional participants', async () => {
-    for (const path of ['offers/test', 'demoParticipants/test', 'other']) await assertFails(db('alice').ref(path).set({ manipulated: true }));
+test('invalid prices, descriptions, extra fields and other companies are rejected', async () => {
+    const target = db().ref('demo/tasks/haek/offers/company-demo');
+    for (const extra of [{ pricePerHousehold: 0 }, { pricePerHousehold: -10 }, { pricePerHousehold: 100001 }, { pricePerHousehold: '350' }, { description: ' \n ' }, { totalPrice: 1000 }]) {
+        await assertFails(target.set(offer(extra)));
+    }
+    await assertFails(db().ref('demo/tasks/haek/offers/other-company').set(offer()));
 });
 
-test('realtime listeners on a second client receive joins and leaves', async () => {
-    await seed({ opportunities: { test: task() } });
-    const observer = db('alice').ref('participants/test');
-    const waitForCount = (count) => new Promise((resolve, reject) => {
-        const timer = setTimeout(() => { observer.off('value', listener); reject(new Error('Realtime update timed out')); }, 5000);
-        const listener = observer.on('value', (snapshot) => {
-            if (snapshot.numChildren() === count) { clearTimeout(timer); observer.off('value', listener); resolve(); }
+test('a second client receives a new offer in realtime', async () => {
+    const observer = db().ref('demo/tasks/haek/offers/company-demo');
+    const seen = new Promise((resolve, reject) => {
+        const timer = setTimeout(() => { observer.off(); reject(new Error('Realtime timed out')); }, 5000);
+        observer.on('value', (snapshot) => {
+            if (snapshot.val()?.pricePerHousehold === 350) {
+                clearTimeout(timer); observer.off(); resolve();
+            }
         }, reject);
     });
-    const joined = waitForCount(1);
-    await db('bob').ref('participants/test/bob').set(stamp());
-    await joined;
-    const left = waitForCount(0);
-    await db('bob').ref('participants/test/bob').remove();
-    await left;
+    await db().ref('demo/tasks/haek/offers/company-demo').set(offer());
+    await seen;
 });
 
-test('view model distinguishes real membership from fictional neighbors and keeps demo prices', async () => {
-    const source = readFileSync(new URL('../utils/opportunities.js', import.meta.url), 'utf8');
-    const { combineOpportunities, parseDeadline, validateOpportunityForm } = await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
-    const result = combineOpportunities({ opportunities: { test: task() }, participants: { test: { alice: { joinedAt: 1 } } }, demoParticipants: { test: { fake: { label: 'Nabo 1' } } }, offers: { test: { expectedCost: 2400, items: { one: { discountedPrice: 2400 } } } } }, 'bob')[0];
-    assert.equal(result.isUserParticipating, false);
-    assert.equal(result.participants.length, 2);
-    assert.equal(result.realParticipantCount, 1);
-    assert.equal(result.expectedCost, 2400);
-    assert.ok(Number.isNaN(parseDeadline('2026-02-30')));
-    assert.ok(validateOpportunityForm({ title: 'Opgave', location: 'Vej', description: '', deadline: '2020-01-01', status: 'Åben for bud' }));
+test('fixed map positions support nearby joins and block an out-of-radius task in the app', () => {
+    const customer = seedData.profiles.customer;
+    const tasks = Object.values(seedData.tasks).map((task) => ({ ...task.details, deadlineAt: Date.now() + 86400000 }));
+    assert.equal(canJoin(tasks[1], customer), true);
+    assert.equal(canJoin(tasks[3], customer), false);
+    assert.equal(canJoin({ ...tasks[1], status: 'closed' }, customer), false);
+    assert.equal(distanceMeters(customer, customer), 0);
+    assert.equal(distanceMeters(null, customer), Infinity);
+    assert.equal(nearbyTasks(tasks.map((task) => ({ ...task, distance: distanceMeters(customer, task) })), customer).length, tasks.length);
+    for (const task of tasks) assert.ok(distanceMeters(seedData.profiles.company, task) < seedData.profiles.company.radiusMeters);
+});
+
+test('Danish prices and calendar dates are parsed without guessing', () => {
+    assert.equal(parsePrice('299,95'), 299.95);
+    assert.equal(parsePrice('350'), 350);
+    for (const invalid of ['350kr', '1.000,00', '', '3,001', '-2']) assert.ok(Number.isNaN(parsePrice(invalid)));
+    assert.ok(Number.isNaN(parseDate('2026-02-30')));
+    assert.ok(Number.isNaN(parseDate('20/10/2026')));
+    assert.equal(new Date(parseDate('2028-02-29')).getDate(), 29);
 });
