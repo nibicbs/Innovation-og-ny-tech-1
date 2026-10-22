@@ -1,5 +1,6 @@
 import { StyleSheet } from 'react-native';
 
+// Udseendet på den fælles knap: primær, sekundær, trykket og deaktiveret.
 export default StyleSheet.create({
     disabled: { opacity: 0.5 },
     pressed: { opacity: 0.75 },

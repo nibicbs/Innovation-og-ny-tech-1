@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, Switch, Text } from 'react-native';
 import { useDemo } from '../context/DemoContext';
+import DemoStatus, { OfflineNotice } from '../components/DemoStatus';
 import { saveTask } from '../database/demo';
 import Button from '../components/ButtonComponent';
 import FormField from '../components/FormField';
@@ -8,17 +9,22 @@ import { dateInput, parseDate, formatDistance } from '../utils/demo';
 import styles from '../styles/DemoStyles';
 
 export default function AddEditOpportunityScreen({ navigation, route }) {
-    const { tasks, profile, role, connected } = useDemo();
+    const { tasks, profile, role, canWrite } = useDemo();
+    // Med et ID udfyldes formularen fra opgaven; uden et ID oprettes en ny.
     const id = route.params?.opportunityId;
     const task = tasks.find((item) => item.id === id);
+    // Formularfelterne holdes lokalt, indtil brugeren trykker på Gem opgaven.
     const [title, setTitle] = useState(task?.title || '');
     const [description, setDescription] = useState(task?.description || '');
     const [deadline, setDeadline] = useState(dateInput(task?.deadlineAt || Date.now() + 14 * 86400000));
     const [open, setOpen] = useState(task?.status !== 'closed');
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState('');
-    const allowed = role === 'customer' && (!id || task?.ownerId === profile.id);
+    // Kun husstanden kan oprette opgaver og redigere dem, den selv ejer.
+    const allowed = role === 'customer' && (!id || task?.ownerId === profile?.id);
     async function save() {
+        if (!canWrite) return;
+        // Kontroller felterne og datoen, før noget sendes til databasen.
         const deadlineAt = parseDate(deadline);
         if (!title.trim() || !description.trim() || !Number.isFinite(deadlineAt) || (open && deadlineAt <= Date.now())) {
             setError('Udfyld titel og beskrivelse, og angiv en gyldig frist. En åben opgave skal have en fremtidig frist.');
@@ -29,10 +35,12 @@ export default function AddEditOpportunityScreen({ navigation, route }) {
             const opportunityId = await saveTask({
                 title: title.trim(), description: description.trim(), deadlineAt, status: open ? 'open' : 'closed',
             }, profile, id);
+            // Erstat formularen med detaljesiden, så Tilbage ikke åbner den gamle formular.
             navigation.replace('Opgavedetaljer', { opportunityId });
         } catch { setError('Opgaven kunne ikke gemmes. Kontrollér forbindelsen, og prøv igen.'); }
         finally { setBusy(false); }
     }
+    if (!profile) return <DemoStatus message="Profilen til opgaven kunne ikke hentes." />;
     return <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
             <Text style={styles.title}>{id ? 'Redigér din opgave' : 'Invitér naboerne med'}</Text>
@@ -44,8 +52,9 @@ export default function AddEditOpportunityScreen({ navigation, route }) {
                 <Text style={styles.label}>Åben for tilmeldinger og bud</Text>
                 <Switch accessibilityLabel="Åben for tilmeldinger og bud" value={open} onValueChange={setOpen} />
             </>}
+            <OfflineNotice />
             {error ? <Text style={styles.error} accessibilityRole="alert">{error}</Text> : null}
-            <Button title="Gem opgaven" disabled={!connected || !allowed} busy={busy} onPress={save} />
+            <Button title="Gem opgaven" disabled={!canWrite || !allowed} busy={busy} onPress={save} />
         </ScrollView>
     </KeyboardAvoidingView>;
 }

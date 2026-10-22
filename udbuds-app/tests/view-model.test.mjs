@@ -3,11 +3,13 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { runInNewContext } from 'node:vm';
 
+// Indlæs hjælpefunktionerne direkte uden at starte Expo eller forbinde til Firebase.
 const load = async (file) => import(`data:text/javascript;base64,${Buffer.from(readFileSync(new URL(file, import.meta.url), 'utf8')).toString('base64')}`);
 const { taskView, areaSummary, customerTasks } = await load('../utils/demo.js');
 const { mapDocument, mapUpdateScript } = await load('../utils/mapDocument.js');
 const profile = { latitude: 55.68, longitude: 12.53 };
 
+// Kontroller filtre, optællinger og den faste pris pr. husstand.
 test('customer filters distinguish joined tasks from open, nearby tasks the household can join', () => {
     const customer = { ...profile, id: 'maja', radiusMeters: 1500 };
     function task(id, changes = {}, participants = {}) {
@@ -61,6 +63,7 @@ test('area overview counts participation across tasks, including households in s
     assert.deepEqual(empty.participantList, []);
 });
 
+// Kontroller, at tekst fra databasen ikke kan blive til kode inde i kortet.
 test('database text crosses the map bridge as plain data, even if it contains script-like text', () => {
     const data = { tasks: [{ id: 'a', title: '</script><script>throw 1</script>"\u2028\u2029' }] };
     let received;
@@ -70,14 +73,17 @@ test('database text crosses the map bridge as plain data, even if it contains sc
     assert.equal(received.tasks[0].title, data.tasks[0].title);
 });
 
-test('map initializes, displays every supplied task and sends the selected task ID back to the app', () => {
+// Efterlign kortbiblioteket, så markørvalg og beskeder kan testes uden en telefon.
+test('map works without database profiles, then displays tasks and handles selection when data arrives', () => {
     const html = mapDocument('');
     const script = html.match(/<script>\s*([\s\S]*?)<\/script>/)[1];
     const messages = [];
     const markers = [];
     let fittedPoints;
-    const layer = { addTo() { return this; }, clearLayers() {} };
-    const map = { fitBounds(points) { fittedPoints = points; }, invalidateSize() {} };
+    let startPoint;
+    let clears = 0;
+    const layer = { addTo() { return this; }, clearLayers() { clears++; } };
+    const map = { setView(point) { startPoint = point; }, fitBounds(points) { fittedPoints = points; }, invalidateSize() {} };
     const tiles = { ...layer, on() { return this; } };
     const context = {
         window: { ReactNativeWebView: { postMessage: (text) => messages.push(JSON.parse(text)) }, addEventListener() {} },
@@ -93,17 +99,29 @@ test('map initializes, displays every supplied task and sends the selected task 
     };
     context.window.L = context.L;
     runInNewContext(script, context);
-    context.window.renderMap({
+    // Kortet starter på Frederiksberg uden opdigtede profiler eller opgaver.
+    context.window.renderMap({ tasks: [] });
+    assert.deepEqual(Array.from(startPoint), [55.6796, 12.5348]);
+    assert.equal(markers.length, 0);
+    assert.equal(fittedPoints, undefined);
+    const data = {
         profile: { ...profile, radiusMeters: 1500 },
         profiles: { customer: { ...profile, name: 'Maja' }, company: { ...profile, name: 'NaboService' } },
         tasks: [{ ...profile, id: 'task-1', title: 'Vinduer', radiusMeters: 1000 },
             { latitude: 55.68, longitude: 12.55, id: 'task-2', title: 'Hæk', radiusMeters: 1000 }],
         selectedId: 'task-2',
-    });
+    };
+    context.window.renderMap(data);
     assert.equal(fittedPoints.length, 5);
     assert.equal(markers.length, 4);
     markers[3].click();
     assert.deepEqual(messages, [{ type: 'mounted' }, { type: 'select', id: 'task-2' }]);
+    // Fejl fjerner markører; en genforbindelse tilpasser igen kortet til profilerne.
+    context.window.renderMap({ tasks: [] });
+    assert.equal(clears, 3);
+    fittedPoints = undefined;
+    context.window.renderMap(data);
+    assert.equal(fittedPoints.length, 5);
 });
 
 test('map reports a resource failure instead of silently leaving the screen blank', () => {

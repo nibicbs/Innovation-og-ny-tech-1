@@ -6,7 +6,6 @@ import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-
 import { StatusBar } from 'expo-status-bar';
 import Ionicons from '@react-native-vector-icons/ionicons';
 import { DemoProvider, useDemo } from './context/DemoContext';
-import DemoStatus from './components/DemoStatus';
 import HomeScreen from './screens/HomeScreen';
 import MapScreen from './screens/MapScreen';
 import MyOpportunitiesScreen from './screens/MyOpportunitiesScreen';
@@ -20,10 +19,12 @@ import CompanyProfileScreen from './screens/CompanyProfileScreen';
 import NeighborhoodScreen from './screens/NeighborhoodScreen';
 import styles from './styles/DemoStyles';
 
+// Bundmenuen viser hovedsiderne. Stack åbner detaljer og formularer oven på dem.
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 const icons = { Opgaver: 'home-outline', Kort: 'map-outline', 'Mine opgaver': 'clipboard-outline', Profil: 'person-outline' };
 
+// De samme fire faner bruges af både husstanden og virksomheden.
 function Tabs() {
     const { role } = useDemo();
     const insets = useSafeAreaInsets();
@@ -47,14 +48,14 @@ function Tabs() {
 }
 
 function DemoApp() {
-    const { role, setRole, profile, loading, error } = useDemo();
-    if (loading || error || !profile) return <><StatusBar style="dark" /><DemoStatus /></>;
+    const { role, setRole, profile } = useDemo();
+    // Navigationen virker også, når Firebase ikke kan levere data.
     return <SafeAreaView style={styles.appShell} edges={['top', 'left', 'right']}>
         <StatusBar style="light" />
         <View style={styles.banner}>
             <View style={styles.bannerIdentity}>
-                <Text style={styles.welcome}>Velkommen til SamBud,</Text>
-                <Text style={styles.bannerName}>{profile.name}</Text>
+                <Text style={styles.welcome}>Velkommen til SamBud{profile ? ',' : ''}</Text>
+                {profile && <Text style={styles.bannerName}>{profile.name}</Text>}
             </View>
             <Pressable style={({ pressed }) => [styles.roleSwitch, pressed && styles.pressed]} accessibilityRole="button"
                 accessibilityLabel={role === 'customer' ? 'Skift til virksomhed' : 'Skift til privat'}
@@ -79,6 +80,7 @@ function DemoApp() {
     </SafeAreaView>;
 }
 
+// Gør de fælles data og telefonens skærmkanter tilgængelige i hele appen.
 export default function App() {
     return <SafeAreaProvider><DemoProvider><DemoApp /></DemoProvider></SafeAreaProvider>;
 }

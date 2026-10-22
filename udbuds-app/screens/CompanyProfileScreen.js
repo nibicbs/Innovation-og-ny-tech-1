@@ -1,10 +1,13 @@
 import { ScrollView, Text, View } from 'react-native';
 import { useDemo } from '../context/DemoContext';
+import DemoStatus from '../components/DemoStatus';
 import { formatDistance } from '../utils/demo';
 import styles from '../styles/DemoStyles';
 
 export default function CompanyProfileScreen() {
     const { profiles } = useDemo();
+    // Brug samme virksomhedsprofil, uanset om kunden eller virksomheden åbner siden.
+    if (!profiles) return <DemoStatus message="Virksomhedsprofilen kunne ikke hentes." />;
     const company = profiles.company;
     return <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
         <Text style={styles.accent}>LOKAL VIRKSOMHED</Text>

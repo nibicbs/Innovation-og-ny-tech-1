@@ -1,7 +1,8 @@
 import { getApp, getApps, initializeApp } from 'firebase/app';
 import { getDatabase } from 'firebase/database';
 
-// Demoen bruger kun Realtime Database. Der er hverken login eller skjult anonym login.
+// Oplysningerne læses fra .env.local og bruges til at finde Firebase-projektet.
+// Demoen bruger kun databasen; der er ikke login.
 const firebaseConfig = {
     apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
     authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -12,6 +13,13 @@ const firebaseConfig = {
     databaseURL: process.env.EXPO_PUBLIC_FIREBASE_DATABASE_URL,
 };
 
-export const rtdb = firebaseConfig.databaseURL
-    ? getDatabase(getApps().length ? getApp() : initializeApp(firebaseConfig), firebaseConfig.databaseURL)
-    : null;
+// Opret kun forbindelsen, når databaseadressen er udfyldt.
+let rtdb = null;
+
+if (firebaseConfig.databaseURL) {
+    // Samme opsætning som i undervisningen: genbrug appen, hvis den allerede findes.
+    const firebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
+    rtdb = getDatabase(firebaseApp, firebaseConfig.databaseURL);
+}
+
+export { rtdb };

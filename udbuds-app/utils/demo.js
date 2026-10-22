@@ -1,6 +1,8 @@
 // Afstand mellem to gemte positioner (Haversine), i meter.
 export function distanceMeters(a, b) {
+    // Manglende koordinater giver uendelig afstand og regnes derfor ikke som tæt på.
     if (!a || !b || ![a.latitude, a.longitude, b.latitude, b.longitude].every(Number.isFinite)) return Infinity;
+    // Beregningen tager højde for jordens krumning og giver afstanden i meter.
     const radians = (degrees) => degrees * Math.PI / 180;
     const lat = radians(b.latitude - a.latitude);
     const lon = radians(b.longitude - a.longitude);
@@ -8,12 +10,16 @@ export function distanceMeters(a, b) {
     return 6371000 * 2 * Math.asin(Math.sqrt(Math.min(1, h)));
 }
 
+// En opgave skal både være åben og have en frist, der ikke er overskredet.
 export function isOpen(task, now = Date.now()) { return task?.status === 'open' && task.deadlineAt > now; }
+// Opgaven har sin egen tilmeldingsradius ud over profilens søgeradius.
 export function canJoin(task, customer, now = Date.now()) {
     return isOpen(task, now) && distanceMeters(customer, task) <= task.radiusMeters;
 }
+// Søgeradius afgør, hvilke opgaver der ligger i profilens nærområde.
 export function nearbyTasks(tasks, profile) { return tasks.filter((task) => task.distance <= profile.radiusMeters); }
 export function customerTasks(tasks, profile, filter, now = Date.now()) {
+    // Egne tilmeldinger vises også, efter en opgave er lukket.
     if (filter === 'joined') {
         return tasks.filter((task) => task.participants[profile.id]);
     }
@@ -21,22 +27,29 @@ export function customerTasks(tasks, profile, filter, now = Date.now()) {
     return nearbyTasks(tasks, profile).filter((task) =>
         !task.participants[profile.id] && canJoin(task, profile, now));
 }
-// Klargør data ét sted, så skærmene kun skal vise dem.
+// Firebase gemmer deltagere og bud under deres ID. Her laves lister, antal og
+// visningstekster, så skærmene ikke selv skal beregne dem. Prisen deles ikke op.
 export function taskView(id, task, profile) {
     const participants = task.participants || {};
     const offers = task.offers || {};
+    const participantList = Object.entries(participants).map(([id, person]) => ({ id, ...person }));
+    const offerList = Object.entries(offers).map(([id, offer]) => ({
+        id,
+        ...offer,
+        priceLabel: money(offer.pricePerHousehold),
+    }));
+
     return {
         ...task.details, id, participants, offers,
         deadlineLabel: new Date(task.details.deadlineAt).toLocaleDateString('da-DK', { day: 'numeric', month: 'short' }),
         participantCount: Object.keys(participants).length,
-        participantList: Object.entries(participants).map(([id, person]) => ({ id, ...person })),
+        participantList,
         offerCount: Object.keys(offers).length,
-        offerList: Object.entries(offers).map(([id, offer]) => ({
-            id, ...offer, priceLabel: money(offer.pricePerHousehold),
-        })),
+        offerList,
         distance: profile ? distanceMeters(profile, task.details) : 0,
     };
 }
+// Tæller tilmeldinger pr. opgave, så samme husstand godt kan tælle flere gange.
 export function areaSummary(tasks, now = Date.now()) {
     const summary = { openCount: 0, participantCount: 0, offerCount: 0 };
     for (const task of tasks) {
@@ -46,18 +59,23 @@ export function areaSummary(tasks, now = Date.now()) {
     }
     return summary;
 }
+// Fælles danske pris- og afstandstekster til kort, opgaver og bud.
 export function money(amount) { return `${amount.toLocaleString('da-DK', { maximumFractionDigits: 2 })} kr.`; }
 export function formatDistance(distance) { return distance < 1000 ? `${Math.round(distance)} m` : `${(distance / 1000).toFixed(1).replace('.', ',')} km`; }
+// Formularens dato skrives som ÅÅÅÅ-MM-DD ud fra lokal tid.
 export function dateInput(timestamp) {
     const date = new Date(timestamp);
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
+// Fristen sættes til slutningen af dagen. Kontrollen afviser fx 30. februar,
+// som JavaScript ellers automatisk ville flytte til en dato i marts.
 export function parseDate(value) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return NaN;
     const [year, month, day] = value.split('-').map(Number);
     const date = new Date(year, month - 1, day, 23, 59, 59, 999);
     return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day ? date.getTime() : NaN;
 }
+// Accepter både komma og punktum som decimaltegn, men højst to decimaler.
 export function parsePrice(value) {
     return /^\d+([.,]\d{1,2})?$/.test(value.trim()) ? Number(value.trim().replace(',', '.')) : NaN;
 }

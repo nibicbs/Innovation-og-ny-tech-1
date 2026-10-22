@@ -1,5 +1,6 @@
 import { StyleSheet } from 'react-native';
 
+// Mobilappens ramme omkring kortet og beskeden oven på kortet under indlæsning.
 export default StyleSheet.create({
     container: { flex: 1, minHeight: 120, backgroundColor: '#E8EDE7' },
     webview: { flex: 1, backgroundColor: '#E8EDE7' },
@@ -7,7 +8,8 @@ export default StyleSheet.create({
     message: { color: '#53616D', textAlign: 'center', fontSize: 15, lineHeight: 22, marginTop: 12 },
 });
 
-// CSS til kortet inde i WebView. Holdes adskilt fra kortets logik.
+// CSS bruges inde i HTML-kortet, mens StyleSheet ovenfor bruges af React Native.
+// task-pin er opgaver; profile-pin viser husstanden eller virksomheden.
 export const mapCss = `
 html, body, #map { height:100%; width:100%; margin:0; background:#E8EDE7; }
 .leaflet-container { font-family:system-ui,sans-serif; }

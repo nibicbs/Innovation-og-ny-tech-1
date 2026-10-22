@@ -1,10 +1,11 @@
 import { StyleSheet } from 'react-native';
 
-// Fælles styling, så demoens screens kan være korte og lette at følge.
+// Fælles udseende for skærmene. Navnene bruges som fx styles.title i skærmkoden.
 export default StyleSheet.create({
     screen: { flex: 1, backgroundColor: '#F6F2EA' },
     appShell: { flex: 1, backgroundColor: '#10344A' },
     content: { padding: 20, paddingTop: 26, paddingBottom: 36 },
+    // Overskrifter, brødtekst og prisvisning.
     eyebrow: { color: '#2E7D73', fontSize: 11, fontWeight: '700', letterSpacing: 1.3, marginBottom: 9 },
     title: { fontSize: 29, fontWeight: '700', letterSpacing: -0.7, color: '#17324D', marginBottom: 8 },
     heading: { fontSize: 18, fontWeight: '600', color: '#17324D', marginBottom: 8 },
@@ -12,6 +13,7 @@ export default StyleSheet.create({
     small: { fontSize: 13, lineHeight: 19, color: '#53616D', marginBottom: 6 },
     accent: { color: '#2E7D73', fontWeight: '700', fontSize: 15, marginBottom: 8 },
     price: { fontSize: 26, fontWeight: '700', color: '#2E7D73', marginVertical: 10 },
+    // Opgavekort og deres status, frist og tilmeldingsmarkering.
     card: {
         padding: 18, backgroundColor: '#FFFFFF', borderRadius: 14,
         borderWidth: 1, borderColor: '#ECECE6', marginBottom: 14,
@@ -27,18 +29,21 @@ export default StyleSheet.create({
     closedStatus: { color: '#68737C' },
     membership: { fontSize: 12, color: '#2E7D73', marginTop: 10, fontWeight: '500' },
     pressed: { opacity: 0.75 },
+    // Formularfelter samt beskeder ved fejl eller manglende forbindelse.
     label: { fontSize: 15, fontWeight: '600', color: '#17324D', marginTop: 18, marginBottom: 8 },
     input: { borderWidth: 1, borderColor: '#BCC9D0', borderRadius: 10, padding: 14, backgroundColor: '#FFFFFF', color: '#17324D', fontSize: 16 },
     multiline: { minHeight: 110, textAlignVertical: 'top' },
     error: { color: '#A52A2A', lineHeight: 22, marginVertical: 12 },
     notice: { padding: 12, backgroundColor: '#FFF4D8', color: '#70531B', lineHeight: 21, marginBottom: 14, borderRadius: 8 },
     center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
+    // Topbjælken med profilnavn og skift mellem Privat og Virksomhed.
     banner: { backgroundColor: '#10344A', paddingHorizontal: 20, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: 12 },
     bannerIdentity: { flex: 1 },
     welcome: { color: '#C4D3DD', fontSize: 11, marginBottom: 4 },
     bannerName: { color: '#FFFFFF', fontSize: 19, lineHeight: 25, fontWeight: '600' },
     roleSwitch: { flexDirection: 'row', gap: 5, alignItems: 'center', justifyContent: 'center', minHeight: 44, paddingHorizontal: 10, borderRadius: 22, backgroundColor: '#FFFFFF0D' },
     roleText: { color: '#E1EAF0', fontSize: 11, fontWeight: '500' },
+    // Bundmenuen og feltet med oplysninger om den valgte opgave på kortet.
     tabBar: { backgroundColor: '#10344A', borderTopWidth: 0, elevation: 0, paddingTop: 6 },
     tabLabel: { fontSize: 11, lineHeight: 15, fontWeight: '500' },
     mapInfo: { padding: 16, backgroundColor: '#FFFFFF' },

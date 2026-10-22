@@ -1,5 +1,6 @@
 import { StyleSheet } from 'react-native';
 
+// Filterbjælken på forsiden. selected og selectedText fremhæver det valgte filter.
 export default StyleSheet.create({
     bar: { flexDirection: 'row', backgroundColor: '#EAEAE3', borderRadius: 12, padding: 4, marginTop: 6, marginBottom: 6 },
     tab: { flex: 1, alignItems: 'center', paddingVertical: 11, borderRadius: 9 },

@@ -1,6 +1,7 @@
 import { Text, TextInput } from 'react-native';
 import styles from '../styles/DemoStyles';
 
+// Samler label og tekstfelt. De øvrige indstillinger sendes videre til TextInput.
 export default function FormField({ label, multiline, ...props }) {
     return <>
         <Text style={styles.label}>{label}</Text>

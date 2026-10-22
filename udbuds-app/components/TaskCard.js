@@ -4,8 +4,10 @@ import { useDemo } from '../context/DemoContext';
 import { formatDistance, isOpen } from '../utils/demo';
 import styles from '../styles/DemoStyles';
 
+// Det samme opgavekort bruges på forsiden og under Mine opgaver / Mine bud.
 export default function TaskCard({ task, onPress }) {
     const { profiles, role } = useDemo();
+    // Markeringerne viser den aktive profils deltagelse eller afgivne bud.
     const joined = role === 'customer' && task.participants[profiles.customer.id];
     const open = isOpen(task);
     return <Pressable style={({ pressed }) => [styles.card, joined && styles.joined, pressed && styles.pressed]}

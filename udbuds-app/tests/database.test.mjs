@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { after, before, beforeEach, test } from 'node:test';
 import { initializeTestEnvironment, assertFails, assertSucceeds } from '@firebase/rules-unit-testing';
 
+// Testene bruger en lokal Firebase-emulator og fiktive data, ikke den aktive database.
 const seedData = JSON.parse(readFileSync(new URL('../database/demo-seed.json', import.meta.url), 'utf8'));
 const source = readFileSync(new URL('../utils/demo.js', import.meta.url), 'utf8');
 const { canJoin, distanceMeters, parseDate, parsePrice, nearbyTasks } =
@@ -20,12 +21,14 @@ const details = (extra = {}) => ({
 });
 const admin = (action) => env.withSecurityRulesDisabled((context) => action(context.database()));
 
+// Start testmiljøet med de samme databaseregler, som appen bruger.
 before(async () => {
     env = await initializeTestEnvironment({ projectId: 'demo-sambud-tests', database: {
         host: '127.0.0.1', port: 9000,
         rules: readFileSync(new URL('../database/database.rules.json', import.meta.url), 'utf8'),
     } });
 });
+// Nulstil data før hver test, så testene ikke påvirker hinanden.
 beforeEach(async () => {
     await env.clearDatabase();
     const demo = structuredClone(seedData);
@@ -36,6 +39,7 @@ beforeEach(async () => {
 });
 after(async () => { await env?.cleanup(); });
 
+// Først kontrolleres, hvad en besøgende må læse og ændre i den fælles demo.
 test('no login: demo is readable; root, old data and profiles cannot be changed', async () => {
     const guest = db();
     await assertSucceeds(guest.ref('demo').get());
@@ -72,6 +76,7 @@ test('malformed task data and past deadlines fail', async () => {
     }
 });
 
+// Tilmelding må ikke tælle samme husstand dobbelt eller ændre de fiktive naboer.
 test('joining is idempotent and leaving preserves fictional neighbors', async () => {
     const member = db().ref('demo/tasks/haek/participants/customer-demo');
     await assertSucceeds(member.set({ name: 'Maja Jensen' }));
@@ -104,6 +109,7 @@ test('demo owner can close and reopen with a future deadline', async () => {
     await assertSucceeds(task.update({ status: 'open', deadlineAt: Date.now() + 86400000, updatedAt: stamp }));
 });
 
+// Bud skal bevare prisen pr. husstand og opdatere samme post ved redigering.
 test('offer price is per household, persists after a join, and edits replace the same offer', async () => {
     const target = db().ref('demo/tasks/haek/offers/company-demo');
     await assertSucceeds(target.set(offer()));
@@ -122,6 +128,7 @@ test('invalid prices, descriptions, extra fields and other companies are rejecte
     await assertFails(db().ref('demo/tasks/haek/offers/other-company').set(offer()));
 });
 
+// En anden forbindelse skal kunne se et nyt bud uden at genindlæse appen.
 test('a second client receives a new offer in realtime', async () => {
     const observer = db().ref('demo/tasks/haek/offers/company-demo');
     const seen = new Promise((resolve, reject) => {
@@ -136,6 +143,7 @@ test('a second client receives a new offer in realtime', async () => {
     await seen;
 });
 
+// Til sidst kontrolleres afstande samt danske datoer og priser.
 test('fixed map positions support nearby joins and block an out-of-radius task in the app', () => {
     const customer = seedData.profiles.customer;
     const tasks = Object.values(seedData.tasks).map((task) => ({ ...task.details, deadlineAt: Date.now() + 86400000 }));
